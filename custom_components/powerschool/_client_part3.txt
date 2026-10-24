@@ -1,5 +1,0 @@
- )
-            student['identity_resolved']=bool(student.get('student_dcid'))
-            result[st['name']]=student
-        return {'students':result}
-
