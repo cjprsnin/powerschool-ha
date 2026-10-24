@@ -1,0 +1,6 @@
+refresh:
+  name: Refresh
+  description: Force an immediate refresh of PowerSchool grades and assignments.
+  target:
+    entity:
+      integration: powerschool

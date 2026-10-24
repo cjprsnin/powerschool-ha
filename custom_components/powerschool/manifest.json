@@ -1,12 +1,10 @@
 {
   "domain": "powerschool",
   "name": "PowerSchool Grades",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "config_flow": true,
   "requirements": [],
-  "codeowners": [
-    "@cjprsnin"
-  ],
+  "codeowners": ["@cjprsnin"],
   "iot_class": "cloud_polling",
   "integration_type": "hub",
   "documentation": "https://github.com/cjprsnin/powerschool-ha",
