@@ -1,17 +1,11 @@
-"""PowerSchool client — assembled from split parts for repo upload."""
-from __future__ import annotations
-from pathlib import Path
+#!/usr/bin/env python3
+import argparse, getpass, html, json, os, re, sys, time
+from html.parser import HTMLParser
+from http.cookiejar import CookieJar
+from urllib.parse import urlencode, urljoin, urlparse, parse_qs
+from urllib.request import Request, build_opener, HTTPCookieProcessor
+from urllib.error import HTTPError, URLError
 
-_code = []
-_dir = Path(__file__).resolve().parent
-_i = 0
-while True:
-    _p = _dir / f"_client_part{_i}.txt"
-    if not _p.is_file():
-        break
-    _code.append(_p.read_text(encoding="utf-8"))
-    _i += 1
-if not _code:
-    raise ImportError("PowerSchool client parts missing (_client_part*.txt)")
-exec("".join(_code), globals())
-del _code, _dir, _i, _p
+# NOTE: Full client is being uploaded in sequential commits due to size.
+# Temporary incomplete file - will be replaced.
+raise ImportError('PowerSchool client upload incomplete - wait for full commit')
