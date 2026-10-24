@@ -1,0 +1,9 @@
+DOMAIN = "powerschool"
+CONF_URL = "url"
+CONF_USERNAME = "username"
+CONF_PASSWORD = "password"
+CONF_STUDENTS = "students"
+CONF_UPDATE_INTERVAL = "update_interval"
+DEFAULT_URL = ""
+DEFAULT_UPDATE_INTERVAL = 15
+PLATFORMS = ["sensor", "select"]

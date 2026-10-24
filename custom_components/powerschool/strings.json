@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "PowerSchool",
+        "description": "Connect your PowerSchool Parent Portal.",
+        "data": {
+          "url": "PowerSchool URL",
+          "username": "Username",
+          "password": "Password",
+          "update_interval": "Update interval (minutes)"
+        }
+      },
+      "students": {
+        "title": "Select students",
+        "description": "Choose which students Home Assistant should monitor.",
+        "data": {
+          "students": "Students"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid PowerSchool credentials.",
+      "cannot_connect": "Could not connect to PowerSchool.",
+      "no_students": "Login succeeded, but no students were found."
+    }
+  }
+}
