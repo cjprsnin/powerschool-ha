@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+import asyncio
 import logging
 from urllib.parse import urlparse
 
@@ -52,12 +53,37 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     async def async_update():
-        try:
-            return await hass.async_add_executor_job(
-                client.fetch_students, data.get(CONF_STUDENTS, [])
-            )
-        except Exception as err:
-            raise UpdateFailed(str(err)) from err
+        # Retry transient network failures (remote closed connection, timeouts).
+        last_err = None
+        for attempt in range(3):
+            try:
+                return await hass.async_add_executor_job(
+                    client.fetch_students, data.get(CONF_STUDENTS, [])
+                )
+            except Exception as err:
+                last_err = err
+                msg = str(err).lower()
+                transient = any(
+                    t in msg
+                    for t in (
+                        "remote end closed",
+                        "connection reset",
+                        "timed out",
+                        "timeout",
+                        "temporarily unavailable",
+                        "connection aborted",
+                        "broken pipe",
+                    )
+                )
+                if not transient or attempt >= 2:
+                    raise UpdateFailed(str(err)) from err
+                _LOGGER.warning(
+                    "PowerSchool update attempt %s failed (%s); retrying",
+                    attempt + 1,
+                    err,
+                )
+                await asyncio.sleep(2 * (attempt + 1))
+        raise UpdateFailed(str(last_err)) from last_err
 
     coordinator = DataUpdateCoordinator(
         hass,
