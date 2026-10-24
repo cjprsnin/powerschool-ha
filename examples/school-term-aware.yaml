@@ -1,0 +1,12 @@
+# Term-aware PowerSchool cards
+# scope: current (default) | history | all
+
+- type: custom:powerschool-card
+  student: Trent
+  scope: current
+  recent: 10
+
+- type: custom:powerschool-card
+  student: Trent
+  scope: history
+  show_empty: true
