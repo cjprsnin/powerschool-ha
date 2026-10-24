@@ -1,0 +1,44 @@
+blueprint:
+  name: PowerSchool missing / late work alert
+  description: Notify when a student has new missing or late assignments.
+  domain: automation
+  input:
+    missing_sensor:
+      name: Missing assignments sensor
+      selector:
+        entity:
+          integration: powerschool
+          domain: sensor
+    late_sensor:
+      name: Late assignments sensor
+      selector:
+        entity:
+          integration: powerschool
+          domain: sensor
+    notify_device:
+      name: Notify service (e.g. notify.mobile_app_phone)
+      selector:
+        text:
+
+trigger:
+  - platform: state
+    entity_id: !input missing_sensor
+  - platform: state
+    entity_id: !input late_sensor
+
+condition:
+  - condition: template
+    value_template: >
+      {% set m = states(trigger.entity_id) | int(0) %}
+      {% set prev = trigger.from_state.state | int(0) if trigger.from_state else 0 %}
+      {{ m > prev }}
+
+action:
+  - service: !input notify_device
+    data:
+      title: PowerSchool
+      message: >
+        {{ state_attr(trigger.entity_id, 'friendly_name') }} is now
+        {{ states(trigger.entity_id) }}
+        (was {{ trigger.from_state.state if trigger.from_state else '?' }}).
+mode: single

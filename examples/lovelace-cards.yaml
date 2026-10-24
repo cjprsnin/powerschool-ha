@@ -1,0 +1,57 @@
+# PowerSchool Lovelace examples
+# Replace STUDENT_NAME with the exact student name from HA (as shown on entities).
+# Photos appear automatically via entity_picture when the portal provides them.
+
+- type: entities
+  title: PowerSchool
+  show_header_toggle: false
+  entities:
+    - entity: sensor.powerschool_STUDENT_NAME_grade_average
+      name: Grade average
+    - entity: sensor.powerschool_STUDENT_NAME_missing_assignments
+      name: Missing
+    - entity: sensor.powerschool_STUDENT_NAME_late_assignments
+      name: Late
+    - entity: binary_sensor.powerschool_STUDENT_NAME_has_missing_work
+      name: Has missing work
+    - entity: binary_sensor.powerschool_STUDENT_NAME_has_late_work
+      name: Has late work
+    - entity: select.powerschool_student
+      name: Active student
+
+- type: glance
+  title: Students
+  entities:
+    - entity: sensor.powerschool_STUDENT_NAME_grade_average
+      name: STUDENT_NAME
+
+- type: markdown
+  title: Missing homework
+  content: |
+    {% set courses = states.sensor
+       | selectattr('entity_id', 'search', 'powerschool_STUDENT_NAME')
+       | selectattr('attributes.missing_homework', 'defined')
+       | list %}
+    {% set ns = namespace(found=false) %}
+    {% for s in courses %}
+      {% set missing = s.attributes.missing_homework or [] %}
+      {% if missing | length > 0 %}
+        {% set ns.found = true %}
+        ### {{ s.attributes.get('friendly_name', s.name) }}
+        {% for a in missing %}
+        - **{{ a.name }}**{% if a.due %} — due {{ a.due }}{% endif %}{% if a.late %} ⚠️ late{% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endfor %}
+    {% if not ns.found %}
+    No missing homework 🎉
+    {% endif %}
+
+- type: custom:mushroom-template-card
+  primary: "{{ states('sensor.powerschool_STUDENT_NAME_grade_average') }}%"
+  secondary: >-
+    Missing {{ states('sensor.powerschool_STUDENT_NAME_missing_assignments') }}
+    · Late {{ states('sensor.powerschool_STUDENT_NAME_late_assignments') }}
+  icon: mdi:school
+  entity: sensor.powerschool_STUDENT_NAME_grade_average
+  picture: "{{ state_attr('sensor.powerschool_STUDENT_NAME_grade_average', 'photo_url') }}"

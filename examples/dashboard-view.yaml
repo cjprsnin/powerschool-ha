@@ -1,0 +1,37 @@
+title: Grades
+path: grades
+icon: mdi:school
+cards:
+  - type: entities
+    title: Overview
+    entities:
+      - entity: sensor.powerschool_STUDENT_NAME_grade_average
+        name: Average
+      - entity: sensor.powerschool_STUDENT_NAME_course_count
+        name: Courses
+      - entity: sensor.powerschool_STUDENT_NAME_assignment_count
+        name: Assignments
+      - entity: binary_sensor.powerschool_STUDENT_NAME_has_missing_work
+      - entity: binary_sensor.powerschool_STUDENT_NAME_has_late_work
+      - entity: sensor.powerschool_STUDENT_NAME_status
+        name: API status
+
+  - type: markdown
+    title: Missing homework
+    content: |
+      {% set courses = states.sensor
+         | selectattr('entity_id', 'search', 'powerschool_STUDENT_NAME')
+         | selectattr('attributes.missing_homework', 'defined')
+         | list %}
+      {% set ns = namespace(found=false) %}
+      {% for s in courses %}
+        {% set missing = s.attributes.missing_homework or [] %}
+        {% if missing | length > 0 %}
+          {% set ns.found = true %}
+          **{{ s.name }}**
+          {% for a in missing %}
+          - {{ a.name }}{% if a.due %} ({{ a.due }}){% endif %}
+          {% endfor %}
+        {% endif %}
+      {% endfor %}
+      {% if not ns.found %}All clear ✅{% endif %}
