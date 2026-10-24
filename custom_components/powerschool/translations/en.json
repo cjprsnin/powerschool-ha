@@ -24,5 +24,20 @@
       "cannot_connect": "Could not connect to PowerSchool.",
       "no_students": "Login succeeded, but no students were found."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "PowerSchool options",
+        "description": "Update portal credentials, students, or poll interval.",
+        "data": {
+          "url": "PowerSchool URL",
+          "username": "Username",
+          "password": "Password",
+          "students": "Students",
+          "update_interval": "Update interval (minutes)"
+        }
+      }
+    }
   }
 }
