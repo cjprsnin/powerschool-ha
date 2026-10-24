@@ -6,10 +6,6 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN
 
 
-def _slug(value: str) -> str:
-    return ''.join(ch.lower() if ch.isalnum() else '_' for ch in str(value)).strip('_')
-
-
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([PowerSchoolStudentSelect(coordinator, entry.entry_id)])
@@ -34,6 +30,14 @@ class PowerSchoolStudentSelect(CoordinatorEntity, SelectEntity):
         if self._selected in options:
             return self._selected
         return options[0] if options else None
+
+    @property
+    def entity_picture(self):
+        name = self.current_option
+        if not name:
+            return None
+        student = self.coordinator.data.get("students", {}).get(name, {})
+        return student.get("photo_url")
 
     async def async_select_option(self, option: str) -> None:
         if option not in self.options:
