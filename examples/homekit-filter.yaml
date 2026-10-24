@@ -1,0 +1,10 @@
+# Example HomeKit filter — keep under device limits
+# homekit:
+#   filter:
+#     include_entities:
+#       - sensor.powerschool_trent_grade_average
+#       - sensor.powerschool_teagan_grade_average
+#       - binary_sensor.trent_s_bedroom_powerschool_trent_has_missing_work
+#       - binary_sensor.trent_s_bedroom_powerschool_trent_has_late_work
+#       - binary_sensor.teagan_s_room_powerschool_teagan_has_missing_work
+#       - binary_sensor.teagan_s_room_powerschool_teagan_has_late_work
