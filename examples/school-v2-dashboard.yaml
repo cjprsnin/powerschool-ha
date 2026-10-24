@@ -1,0 +1,52 @@
+# PowerSchool V2 card — dashboard template
+# Resource: https://cdn.jsdelivr.net/gh/cjprsnin/powerschool-ha@main/www/powerschool-v2-card.js
+#
+# Card options:
+#   student: required (e.g. Trent, Teagan)
+#   compact: true/false — denser layout for side panels
+#   photo: optional URL for student avatar
+
+title: School V2
+views:
+  - title: School
+    path: school
+    icon: mdi:school
+    type: sections
+    max_columns: 2
+    sections:
+      - type: grid
+        column_span: 1
+        cards:
+          - type: heading
+            heading: Trent
+            icon: mdi:account-school
+          - type: custom:powerschool-v2-card
+            student: Trent
+            grid_options:
+              columns: full
+      - type: grid
+        column_span: 1
+        cards:
+          - type: heading
+            heading: Teagan
+            icon: mdi:account-school-outline
+          - type: custom:powerschool-v2-card
+            student: Teagan
+            grid_options:
+              columns: full
+
+  - title: Trent
+    path: trent
+    icon: mdi:account
+    type: panel
+    cards:
+      - type: custom:powerschool-v2-card
+        student: Trent
+
+  - title: Teagan
+    path: teagan
+    icon: mdi:account-outline
+    type: panel
+    cards:
+      - type: custom:powerschool-v2-card
+        student: Teagan
