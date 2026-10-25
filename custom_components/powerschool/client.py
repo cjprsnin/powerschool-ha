@@ -1,4 +1,4 @@
-"""PowerSchool client — plain import (gzip packing removed; it was corrupt)."""
+"""PowerSchool client."""
 from __future__ import annotations
 
 from .client_impl import PowerSchoolClient
