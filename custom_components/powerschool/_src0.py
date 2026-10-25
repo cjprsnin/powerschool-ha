@@ -29,6 +29,12 @@ def save_debug(name,text):
 def norm(x):return re.sub(r'\s+',' ',html.unescape(str(x or ''))).strip()
 def strip(x):return norm(re.sub(r'<[^>]+>',' ',str(x or '')))
 def clean_course_name(text):
+    """Extract the actual course name from PowerSchool's Course cell.
+
+    The attendance/grade table commonly renders cells like:
+    "Science 7 Email Genco, Rebecca - Rm: 154".
+    We want only "Science 7" and not the teacher/room metadata.
+    """
     text=norm(text)
     if not text:
         return ''
@@ -69,24 +75,4 @@ def request(url,method='GET',data=None,json_data=None,headers=None):
         r=opener.open(req,timeout=TIMEOUT);raw=r.read();enc=r.headers.get_content_charset() or 'utf-8';text=raw.decode(enc,errors='replace');debug('HTTP %s %s (%d bytes)'%(r.status,r.geturl(),len(raw)))
         return {'status':r.status,'url':r.geturl(),'headers':r.headers,'body':text}
     except HTTPError as e:
-        raw=e.read();text=raw.decode(e.headers.get_content_charset() or 'utf-8',errors='replace');return {'status':e.code,'url':e.geturl(),'headers':e.headers,'body':text,'error':str(e)}
-    except URLError as e:return {'status':0,'url':url,'headers':{},'body':'','error':str(e)}
-def get(url,headers=None):return request(url,'GET',headers=headers)
-def post(url,data,headers=None):return request(url,'POST',data=data,headers=headers)
-def post_json(url,data,headers=None):return request(url,'POST',json_data=data,headers=headers)
-
-def login(user,pw):
-    get(PUBLIC_URL)
-    payload={'account':user,'pw':pw,'dbpw':'','ldappassword':'','translator':'','translatorPassword':'','returnUrl':'','serviceName':'','serviceTicket':'','pcasServerUrl':'','credentialType':'','request_locale':'en_US'}
-    r=post(LOGIN_URL,payload,{'Referer':PUBLIC_URL,'Origin':BASE_URL});debug('Login status=%s final=%s'%(r['status'],r['url']));save_debug('powerschool_debug_login.html',r['body']);return r
-
-def login_success(r):
-    s=r['body'].lower();good=('switchstudent','studentfrn','studentdcid','attbyclass','logout','studentscores','student scores');return any(x in s for x in good)
-
-def frn_dcid(v):
-    text=html.unescape(str(v or '')).strip()
-    m=re.fullmatch(r'0*001(\d+)',text)
-    if m:
-        return m.group(1).lstrip('0') or '0'
-    m=re.search(r'(\d+)',text)
-    return m.group(1) if m else None
+        raw=e.read();text=raw.decode(e.headers.get_content_charset() or 'utf-8',errors='replace');return {'status':e.code,'u
