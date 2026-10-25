@@ -6,7 +6,7 @@ from http.cookiejar import CookieJar
 from . import ps_http as S
 from .ps_grades import current_school_year_range
 from .ps_http import find_students, get, login, login_success
-from .ps_assign import process_student
+from .ps_student import process_student
 
 
 class PowerSchoolClient:
@@ -37,7 +37,6 @@ class PowerSchoolClient:
         S.TIMEOUT = 30
         S.DELAY = 0.25
         S.GET_ASSIGNMENTS = True
-        # Lazy opener: do not build SSL context on the event loop.
         S.jar = CookieJar()
         S.opener = None
 
@@ -65,26 +64,12 @@ class PowerSchoolClient:
         for st in students:
             student = process_student(st, photo_dir=self.photo_dir)
             courses = student.get("courses", []) or []
-            assignments = [
-                a for c in courses for a in (c.get("assignments", []) or [])
-            ]
-            graded = sum(
-                1
-                for a in assignments
-                if a.get("percent") is not None or a.get("letter")
-            )
-            numeric_grades = [
-                c.get("grade_percent")
-                for c in courses
-                if c.get("grade_percent") is not None
-            ]
+            assignments = [a for c in courses for a in (c.get("assignments", []) or [])]
+            graded = sum(1 for a in assignments if a.get("percent") is not None or a.get("letter"))
+            numeric_grades = [c.get("grade_percent") for c in courses if c.get("grade_percent") is not None]
             student["course_count"] = len(courses)
-            student["courses_with_assignments"] = sum(
-                1 for c in courses if c.get("assignment_count", 0)
-            )
-            student["courses_without_assignments"] = sum(
-                1 for c in courses if not c.get("assignment_count", 0)
-            )
+            student["courses_with_assignments"] = sum(1 for c in courses if c.get("assignment_count", 0))
+            student["courses_without_assignments"] = sum(1 for c in courses if not c.get("assignment_count", 0))
             student["assignment_count"] = len(assignments)
             student["graded_assignments"] = graded
             student["ungraded_assignments"] = len(assignments) - graded
@@ -94,13 +79,9 @@ class PowerSchoolClient:
             student["exempt"] = sum(1 for a in assignments if a.get("exempt"))
             student["absent"] = sum(1 for a in assignments if a.get("absent"))
             student["collected"] = sum(1 for a in assignments if a.get("collected"))
-            student["grade_average"] = (
-                (sum(numeric_grades) / len(numeric_grades)) if numeric_grades else None
-            )
+            student["grade_average"] = (sum(numeric_grades) / len(numeric_grades)) if numeric_grades else None
             student["assignment_api_status"] = (
-                "ok"
-                if any(c.get("assignment_status") == "ok" for c in courses)
-                else ("no_data" if courses else "no_courses")
+                "ok" if any(c.get("assignment_status") == "ok" for c in courses) else ("no_data" if courses else "no_courses")
             )
             student["identity_resolved"] = bool(student.get("student_dcid"))
             result[st["name"]] = student
