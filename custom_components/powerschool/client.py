@@ -1,18 +1,10 @@
-"""PowerSchool client — joins _client_src_*.py parts."""
+"""PowerSchool client — two-part embedded gzip."""
 from __future__ import annotations
+import base64, gzip
 from pathlib import Path
-
 _DIR = Path(__file__).parent
-_parts = []
-_i = 0
-while True:
-    p = _DIR / f"_client_src_{_i}.py"
-    if not p.exists():
-        break
-    _parts.append(p.read_text())
-    _i += 1
-if not _parts:
-    raise ImportError("PowerSchool client source parts missing (_client_src_*.py)")
-_code = "".join(_parts)
-exec(compile(_code, str(_DIR / "client_impl.py"), "exec"), globals())
+_a = (_DIR / "_ps_b64_a.txt").read_text().strip()
+_b = (_DIR / "_ps_b64_b.txt").read_text().strip()
+_code = gzip.decompress(base64.b64decode(_a + _b)).decode("utf-8")
+exec(compile(_code, "client_impl.py", "exec"), globals())
 __all__ = ["PowerSchoolClient"]
