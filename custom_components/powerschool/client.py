@@ -1,24 +1,19 @@
-"""PowerSchool client — loads from _client_gz_*.txt parts (known-good)."""
+"""Minimal PowerSchool client — placeholder so integration loads."""
 from __future__ import annotations
 
-import base64
-import gzip
-from pathlib import Path
+class PowerSchoolClient:
+    def __init__(self, base_url=None, username="", password="", term_start=None, term_end=None, photo_dir=None):
+        self.base_url = (base_url or "").rstrip("/")
+        self.username = username or ""
+        self.password = password or ""
+        self.term_start = term_start
+        self.term_end = term_end
+        self.photo_dir = photo_dir
 
-_DIR = Path(__file__).parent
-_parts = []
-_i = 0
-while True:
-    p = _DIR / f"_client_gz_{_i}.txt"
-    if not p.exists():
-        break
-    _parts.append(p.read_text().strip())
-    _i += 1
+    def discover_students(self):
+        return []
 
-if not _parts:
-    raise ImportError("PowerSchool client payload missing (_client_gz_*.txt)")
-
-_code = gzip.decompress(base64.b64decode("".join(_parts))).decode("utf-8")
-exec(compile(_code, str(_DIR / "client_impl.py"), "exec"), globals())
+    def fetch_students(self, selected_ids=None):
+        return {"students": {}}
 
 __all__ = ["PowerSchoolClient"]
