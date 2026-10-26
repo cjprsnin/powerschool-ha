@@ -15,6 +15,7 @@ Pulls grades, assignment counts, missing/late work, course details, and **studen
 - Student profile photos as `entity_picture` (from the portal)
 - Diagnostic status sensor (identity + assignment API health)
 - Service: `powerschool.refresh`
+- Custom Lovelace cards (V1 expandable, V2 app tiles, V3 class overview)
 - Example Lovelace cards + notification blueprint
 
 ## Installation
@@ -75,9 +76,17 @@ Forces an immediate poll of all configured PowerSchool entries.
 
 Integration → **Configure**: URL, credentials, students, update interval (5–1440 minutes).
 
-## Lovelace examples
+## Lovelace cards (V1 / V2 / V3)
 
-See [`examples/lovelace-cards.yaml`](examples/lovelace-cards.yaml) and [`examples/dashboard-view.yaml`](examples/dashboard-view.yaml).
+**Previews and comparison:** [`docs/CARDS.md`](docs/CARDS.md)
+
+| Card | Type | Style |
+|------|------|--------|
+| V1 | `custom:powerschool-card` | Expandable course list |
+| V2 | `custom:powerschool-v2-card` | App-style color tiles |
+| V3 | `custom:powerschool-v3-card` | Class Overview (same engine as V2) |
+
+YAML snippets: [`examples/lovelace-cards-v1-v2-v3.yaml`](examples/lovelace-cards-v1-v2-v3.yaml) · also [`examples/lovelace-cards.yaml`](examples/lovelace-cards.yaml), [`examples/dashboard-view.yaml`](examples/dashboard-view.yaml).
 
 ## Notifications
 
