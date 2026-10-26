@@ -1,0 +1,29 @@
+# PowerSchool card examples — V1 / V2 / V3
+# Register www/powerschool-*.js as Lovelace module resources first.
+# See docs/CARDS.md for previews and comparison.
+
+# --- V1 expandable ---
+- type: custom:powerschool-card
+  student: Trent
+  scope: current
+  recent: 10
+
+- type: custom:powerschool-card
+  student: Teagan
+  scope: current
+  show_empty: true
+  recent: 10
+
+# --- V2 app ---
+- type: custom:powerschool-v2-card
+  student: Trent
+
+- type: custom:powerschool-v2-card
+  student: Teagan
+
+# --- V3 class overview (alias of V2) ---
+- type: custom:powerschool-v3-card
+  student: Trent
+
+- type: custom:powerschool-v3-card
+  student: Teagan
