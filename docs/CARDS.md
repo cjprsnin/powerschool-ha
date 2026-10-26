@@ -24,7 +24,7 @@ V3 is a **full standalone** card (same UI style as V2). V1/V2/V3 can load indepe
 
 ### V1 — Expandable list
 
-![V1 card](images/card-v1.svg)
+![V1 card](https://cdn.jsdelivr.net/gh/cjprsnin/powerschool-ha@main/docs/images/card-v1.svg)
 
 - Header with student, refresh, average / missing / late stats
 - Course rows; tap to expand recent assignments & category detail
@@ -39,7 +39,7 @@ recent: 10
 
 ### V2 — App tiles
 
-![V2 card](images/card-v2.svg)
+![V2 card](https://cdn.jsdelivr.net/gh/cjprsnin/powerschool-ha@main/docs/images/card-v2.svg)
 
 - Color-coded grade tiles (subject palette)
 - Tap tile → course hero + assignment list
@@ -53,21 +53,15 @@ student: Trent
 
 ### V3 — Class Overview
 
-![V3 card](images/card-v3.svg)
+![V3 card](https://cdn.jsdelivr.net/gh/cjprsnin/powerschool-ha@main/docs/images/card-v3.svg)
 
-- Class Overview layout: denser grade grid + Missing & Late panel
+- Class Overview layout: denser grade grid + Missing and Late panel
 - Registered as `powerschool-v3-card` for overview dashboards
 
 ```yaml
 type: custom:powerschool-v3-card
 student: Teagan
 ```
-
-Direct image links (if the markdown embed is cached):
-
-- [V1 SVG](https://github.com/cjprsnin/powerschool-ha/blob/main/docs/images/card-v1.svg)
-- [V2 SVG](https://github.com/cjprsnin/powerschool-ha/blob/main/docs/images/card-v2.svg)
-- [V3 SVG](https://github.com/cjprsnin/powerschool-ha/blob/main/docs/images/card-v3.svg)
 
 ---
 
@@ -109,7 +103,7 @@ More YAML: [`examples/lovelace-cards.yaml`](../examples/lovelace-cards.yaml), [`
 
 | Feature | V1 | V2 / V3 |
 |---------|----|--------|
-| Expandable courses | Yes | Drill-down “pages” |
+| Expandable courses | Yes | Drill-down pages |
 | Color grade tiles | No | Yes |
 | Assignment tabs | In expand | Upcoming / Recent / Status |
 | Sparklines (14d) | Optional | Built-in |
