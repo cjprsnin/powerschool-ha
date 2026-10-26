@@ -6,54 +6,51 @@
     <linearGradient id="v3d" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#b8562a"/><stop offset="100%" stop-color="#8a3a17"/></linearGradient>
     <linearGradient id="v3e" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4a7a34"/><stop offset="100%" stop-color="#345a22"/></linearGradient>
     <linearGradient id="v3f" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7a4aa8"/><stop offset="100%" stop-color="#3f2468"/></linearGradient>
-    <filter id="v3s"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity=".2"/></filter>
   </defs>
   <rect width="420" height="580" fill="#121214"/>
-  <rect x="16" y="16" width="388" height="548" rx="16" fill="#1e1e22" filter="url(#v3s)"/>
-  <text x="32" y="48" fill="#f5f5f7" font-family="system-ui" font-size="13" font-weight="600" letter-spacing="1">CLASS OVERVIEW</text>
-  <text x="32" y="72" fill="#f5f5f7" font-family="system-ui" font-size="22" font-weight="700">Trent</text>
-  <text x="32" y="92" fill="#8e8e93" font-family="system-ui" font-size="12">Tap a class for details - 87% avg</text>
+  <rect x="16" y="16" width="388" height="548" rx="16" fill="#1e1e22"/>
+  <text x="32" y="48" fill="#f5f5f7" font-family="system-ui,sans-serif" font-size="13" font-weight="600" letter-spacing="1">CLASS OVERVIEW</text>
+  <text x="32" y="72" fill="#f5f5f7" font-family="system-ui,sans-serif" font-size="22" font-weight="700">Trent</text>
+  <text x="32" y="92" fill="#8e8e93" font-family="system-ui,sans-serif" font-size="12">Tap a class for details - 87% avg</text>
   <circle cx="372" cy="56" r="16" fill="#3a3a3c"/>
-  <text x="372" y="61" text-anchor="middle" fill="#0a84ff" font-family="system-ui" font-size="14">R</text>
-  <g font-family="system-ui">
-    <rect x="32" y="112" width="112" height="88" rx="14" fill="url(#v3a)"/>
-    <text x="48" y="142" fill="#fff" font-size="26" font-weight="700">A-</text>
-    <text x="48" y="164" fill="rgba(255,255,255,.9)" font-size="12">90%</text>
-    <text x="48" y="184" fill="rgba(255,255,255,.8)" font-size="11">English LA</text>
-    <rect x="154" y="112" width="112" height="88" rx="14" fill="url(#v3b)"/>
-    <text x="170" y="142" fill="#fff" font-size="26" font-weight="700">B</text>
-    <text x="170" y="164" fill="rgba(255,255,255,.9)" font-size="12">85%</text>
-    <text x="170" y="184" fill="rgba(255,255,255,.8)" font-size="11">Foreign Lang</text>
-    <rect x="276" y="112" width="112" height="88" rx="14" fill="url(#v3c)"/>
-    <text x="292" y="142" fill="#fff" font-size="26" font-weight="700">C+</text>
-    <text x="292" y="164" fill="rgba(255,255,255,.9)" font-size="12">77%</text>
-    <text x="292" y="184" fill="rgba(255,255,255,.8)" font-size="11">Global Studies</text>
-    <rect x="32" y="212" width="112" height="88" rx="14" fill="url(#v3d)"/>
-    <text x="48" y="242" fill="#fff" font-size="26" font-weight="700">B+</text>
-    <text x="48" y="264" fill="rgba(255,255,255,.9)" font-size="12">88%</text>
-    <text x="48" y="284" fill="rgba(255,255,255,.8)" font-size="11">Science 7</text>
-    <rect x="154" y="212" width="112" height="88" rx="14" fill="url(#v3e)"/>
-    <text x="170" y="242" fill="#fff" font-size="26" font-weight="700">A</text>
-    <text x="170" y="264" fill="rgba(255,255,255,.9)" font-size="12">100%</text>
-    <text x="170" y="284" fill="rgba(255,255,255,.8)" font-size="11">PE / Health</text>
-    <rect x="276" y="212" width="112" height="88" rx="14" fill="url(#v3f)"/>
-    <text x="292" y="242" fill="#fff" font-size="26" font-weight="700">A-</text>
-    <text x="292" y="264" fill="rgba(255,255,255,.9)" font-size="12">92%</text>
-    <text x="292" y="284" fill="rgba(255,255,255,.8)" font-size="11">Band</text>
-  </g>
-  <text x="32" y="332" fill="#f5f5f7" font-family="system-ui" font-size="15" font-weight="600">Assignments</text>
+  <text x="372" y="61" text-anchor="middle" fill="#0a84ff" font-family="system-ui,sans-serif" font-size="14">R</text>
+  <rect x="32" y="112" width="112" height="88" rx="14" fill="url(#v3a)"/>
+  <text x="48" y="142" fill="#fff" font-family="system-ui,sans-serif" font-size="26" font-weight="700">A-</text>
+  <text x="48" y="164" fill="#ffffff" font-family="system-ui,sans-serif" font-size="12" opacity="0.9">90%</text>
+  <text x="48" y="184" fill="#ffffff" font-family="system-ui,sans-serif" font-size="11" opacity="0.8">English LA</text>
+  <rect x="154" y="112" width="112" height="88" rx="14" fill="url(#v3b)"/>
+  <text x="170" y="142" fill="#fff" font-family="system-ui,sans-serif" font-size="26" font-weight="700">B</text>
+  <text x="170" y="164" fill="#ffffff" font-family="system-ui,sans-serif" font-size="12" opacity="0.9">85%</text>
+  <text x="170" y="184" fill="#ffffff" font-family="system-ui,sans-serif" font-size="11" opacity="0.8">Foreign Lang</text>
+  <rect x="276" y="112" width="112" height="88" rx="14" fill="url(#v3c)"/>
+  <text x="292" y="142" fill="#fff" font-family="system-ui,sans-serif" font-size="26" font-weight="700">C+</text>
+  <text x="292" y="164" fill="#ffffff" font-family="system-ui,sans-serif" font-size="12" opacity="0.9">77%</text>
+  <text x="292" y="184" fill="#ffffff" font-family="system-ui,sans-serif" font-size="11" opacity="0.8">Global Studies</text>
+  <rect x="32" y="212" width="112" height="88" rx="14" fill="url(#v3d)"/>
+  <text x="48" y="242" fill="#fff" font-family="system-ui,sans-serif" font-size="26" font-weight="700">B+</text>
+  <text x="48" y="264" fill="#ffffff" font-family="system-ui,sans-serif" font-size="12" opacity="0.9">88%</text>
+  <text x="48" y="284" fill="#ffffff" font-family="system-ui,sans-serif" font-size="11" opacity="0.8">Science 7</text>
+  <rect x="154" y="212" width="112" height="88" rx="14" fill="url(#v3e)"/>
+  <text x="170" y="242" fill="#fff" font-family="system-ui,sans-serif" font-size="26" font-weight="700">A</text>
+  <text x="170" y="264" fill="#ffffff" font-family="system-ui,sans-serif" font-size="12" opacity="0.9">100%</text>
+  <text x="170" y="284" fill="#ffffff" font-family="system-ui,sans-serif" font-size="11" opacity="0.8">PE / Health</text>
+  <rect x="276" y="212" width="112" height="88" rx="14" fill="url(#v3f)"/>
+  <text x="292" y="242" fill="#fff" font-family="system-ui,sans-serif" font-size="26" font-weight="700">A-</text>
+  <text x="292" y="264" fill="#ffffff" font-family="system-ui,sans-serif" font-size="12" opacity="0.9">92%</text>
+  <text x="292" y="284" fill="#ffffff" font-family="system-ui,sans-serif" font-size="11" opacity="0.8">Band</text>
+  <text x="32" y="332" fill="#f5f5f7" font-family="system-ui,sans-serif" font-size="15" font-weight="600">Assignments</text>
   <rect x="32" y="348" width="110" height="36" rx="10" fill="#3a3a3c"/>
-  <text x="87" y="371" text-anchor="middle" fill="#f5f5f7" font-family="system-ui" font-size="12">Upcoming</text>
+  <text x="87" y="371" text-anchor="middle" fill="#f5f5f7" font-family="system-ui,sans-serif" font-size="12">Upcoming</text>
   <rect x="152" y="348" width="90" height="36" rx="10" fill="#3a3a3c"/>
-  <text x="197" y="371" text-anchor="middle" fill="#f5f5f7" font-family="system-ui" font-size="12">Recent</text>
+  <text x="197" y="371" text-anchor="middle" fill="#f5f5f7" font-family="system-ui,sans-serif" font-size="12">Recent</text>
   <rect x="252" y="348" width="136" height="36" rx="10" fill="#3a3a3c"/>
-  <text x="300" y="371" text-anchor="middle" fill="#f5f5f7" font-family="system-ui" font-size="12">Status</text>
+  <text x="300" y="371" text-anchor="middle" fill="#f5f5f7" font-family="system-ui,sans-serif" font-size="12">Status</text>
   <circle cx="370" cy="356" r="9" fill="#ff453a"/>
-  <text x="370" y="360" text-anchor="middle" fill="#fff" font-family="system-ui" font-size="10" font-weight="700">14</text>
+  <text x="370" y="360" text-anchor="middle" fill="#fff" font-family="system-ui,sans-serif" font-size="10" font-weight="700">14</text>
   <rect x="32" y="400" width="356" height="100" rx="14" fill="#2a2224"/>
-  <text x="48" y="428" fill="#ff453a" font-family="system-ui" font-size="13" font-weight="600">Missing & Late</text>
-  <text x="48" y="452" fill="#f5f5f7" font-family="system-ui" font-size="13">Map Project - Global Studies</text>
-  <text x="48" y="472" fill="#f5f5f7" font-family="system-ui" font-size="13">Lab Write-up - Science 7</text>
-  <text x="48" y="492" fill="#ff9f0a" font-family="system-ui" font-size="12">+ 6 late / 4 missing</text>
-  <text x="210" y="548" text-anchor="middle" fill="#636366" font-family="system-ui" font-size="12" font-weight="600">V3 - powerschool-v3-card (class overview)</text>
+  <text x="48" y="428" fill="#ff453a" font-family="system-ui,sans-serif" font-size="13" font-weight="600">Missing and Late</text>
+  <text x="48" y="452" fill="#f5f5f7" font-family="system-ui,sans-serif" font-size="13">Map Project - Global Studies</text>
+  <text x="48" y="472" fill="#f5f5f7" font-family="system-ui,sans-serif" font-size="13">Lab Write-up - Science 7</text>
+  <text x="48" y="492" fill="#ff9f0a" font-family="system-ui,sans-serif" font-size="12">+ 6 late / 4 missing</text>
+  <text x="210" y="548" text-anchor="middle" fill="#636366" font-family="system-ui,sans-serif" font-size="12" font-weight="600">V3 - powerschool-v3-card (class overview)</text>
 </svg>
