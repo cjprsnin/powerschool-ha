@@ -1,42 +1,42 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="420" height="580" viewBox="0 0 420 580">
   <defs>
-    <linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#8f7a26"/><stop offset="100%" stop-color="#665518"/></linearGradient>
-    <linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a02f57"/><stop offset="100%" stop-color="#772045"/></linearGradient>
-    <linearGradient id="c" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3a86a8"/><stop offset="100%" stop-color="#255a75"/></linearGradient>
-    <linearGradient id="d" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#b8562a"/><stop offset="100%" stop-color="#8a3a17"/></linearGradient>
-    <linearGradient id="e" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4a7a34"/><stop offset="100%" stop-color="#345a22"/></linearGradient>
-    <linearGradient id="f" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7a4aa8"/><stop offset="100%" stop-color="#3f2468"/></linearGradient>
-    <filter id="s"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity=".2"/></filter>
+    <linearGradient id="v3a" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#8f7a26"/><stop offset="100%" stop-color="#665518"/></linearGradient>
+    <linearGradient id="v3b" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a02f57"/><stop offset="100%" stop-color="#772045"/></linearGradient>
+    <linearGradient id="v3c" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3a86a8"/><stop offset="100%" stop-color="#255a75"/></linearGradient>
+    <linearGradient id="v3d" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#b8562a"/><stop offset="100%" stop-color="#8a3a17"/></linearGradient>
+    <linearGradient id="v3e" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4a7a34"/><stop offset="100%" stop-color="#345a22"/></linearGradient>
+    <linearGradient id="v3f" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7a4aa8"/><stop offset="100%" stop-color="#3f2468"/></linearGradient>
+    <filter id="v3s"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity=".2"/></filter>
   </defs>
   <rect width="420" height="580" fill="#121214"/>
-  <rect x="16" y="16" width="388" height="548" rx="16" fill="#1e1e22" filter="url(#s)"/>
+  <rect x="16" y="16" width="388" height="548" rx="16" fill="#1e1e22" filter="url(#v3s)"/>
   <text x="32" y="48" fill="#f5f5f7" font-family="system-ui" font-size="13" font-weight="600" letter-spacing="1">CLASS OVERVIEW</text>
   <text x="32" y="72" fill="#f5f5f7" font-family="system-ui" font-size="22" font-weight="700">Trent</text>
   <text x="32" y="92" fill="#8e8e93" font-family="system-ui" font-size="12">Tap a class for details · 87% avg</text>
   <circle cx="372" cy="56" r="16" fill="#3a3a3c"/>
   <text x="372" y="61" text-anchor="middle" fill="#0a84ff" font-family="system-ui" font-size="14">↻</text>
   <g font-family="system-ui">
-    <rect x="32" y="112" width="112" height="88" rx="14" fill="url(#a)"/>
+    <rect x="32" y="112" width="112" height="88" rx="14" fill="url(#v3a)"/>
     <text x="48" y="142" fill="#fff" font-size="26" font-weight="700">A-</text>
     <text x="48" y="164" fill="rgba(255,255,255,.9)" font-size="12">90%</text>
     <text x="48" y="184" fill="rgba(255,255,255,.8)" font-size="11">English LA</text>
-    <rect x="154" y="112" width="112" height="88" rx="14" fill="url(#b)"/>
+    <rect x="154" y="112" width="112" height="88" rx="14" fill="url(#v3b)"/>
     <text x="170" y="142" fill="#fff" font-size="26" font-weight="700">B</text>
     <text x="170" y="164" fill="rgba(255,255,255,.9)" font-size="12">85%</text>
     <text x="170" y="184" fill="rgba(255,255,255,.8)" font-size="11">Foreign Lang</text>
-    <rect x="276" y="112" width="112" height="88" rx="14" fill="url(#c)"/>
+    <rect x="276" y="112" width="112" height="88" rx="14" fill="url(#v3c)"/>
     <text x="292" y="142" fill="#fff" font-size="26" font-weight="700">C+</text>
     <text x="292" y="164" fill="rgba(255,255,255,.9)" font-size="12">77%</text>
     <text x="292" y="184" fill="rgba(255,255,255,.8)" font-size="11">Global Studies</text>
-    <rect x="32" y="212" width="112" height="88" rx="14" fill="url(#d)"/>
+    <rect x="32" y="212" width="112" height="88" rx="14" fill="url(#v3d)"/>
     <text x="48" y="242" fill="#fff" font-size="26" font-weight="700">B+</text>
     <text x="48" y="264" fill="rgba(255,255,255,.9)" font-size="12">88%</text>
     <text x="48" y="284" fill="rgba(255,255,255,.8)" font-size="11">Science 7</text>
-    <rect x="154" y="212" width="112" height="88" rx="14" fill="url(#e)"/>
+    <rect x="154" y="212" width="112" height="88" rx="14" fill="url(#v3e)"/>
     <text x="170" y="242" fill="#fff" font-size="26" font-weight="700">A</text>
     <text x="170" y="264" fill="rgba(255,255,255,.9)" font-size="12">100%</text>
     <text x="170" y="284" fill="rgba(255,255,255,.8)" font-size="11">PE / Health</text>
-    <rect x="276" y="212" width="112" height="88" rx="14" fill="url(#f)"/>
+    <rect x="276" y="212" width="112" height="88" rx="14" fill="url(#v3f)"/>
     <text x="292" y="242" fill="#fff" font-size="26" font-weight="700">A-</text>
     <text x="292" y="264" fill="rgba(255,255,255,.9)" font-size="12">92%</text>
     <text x="292" y="284" fill="rgba(255,255,255,.8)" font-size="11">Band</text>
