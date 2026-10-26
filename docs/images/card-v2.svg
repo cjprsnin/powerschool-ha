@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="560" viewBox="0 0 420 560">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#8f7a26"/><stop offset="100%" stop-color="#665518"/></linearGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a02f57"/><stop offset="100%" stop-color="#772045"/></linearGradient>
+    <linearGradient id="g3" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3a86a8"/><stop offset="100%" stop-color="#255a75"/></linearGradient>
+    <linearGradient id="g4" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4a7a34"/><stop offset="100%" stop-color="#345a22"/></linearGradient>
+    <filter id="s"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity=".2"/></filter>
+  </defs>
+  <rect width="420" height="560" fill="#1c1c1e"/>
+  <rect x="16" y="16" width="388" height="528" rx="16" fill="#2c2c2e" filter="url(#s)"/>
+  <text x="32" y="48" fill="#f5f5f7" font-family="system-ui" font-size="22" font-weight="700">Trent</text>
+  <text x="32" y="68" fill="#8e8e93" font-family="system-ui" font-size="12">87.3% average · 4 missing</text>
+  <circle cx="372" cy="48" r="16" fill="#3a3a3c"/>
+  <text x="372" y="53" text-anchor="middle" fill="#0a84ff" font-family="system-ui" font-size="14">↻</text>
+  <g font-family="system-ui">
+    <rect x="32" y="88" width="170" height="100" rx="16" fill="url(#g1)"/>
+    <text x="48" y="118" fill="#fff" font-size="28" font-weight="700">A-</text>
+    <text x="48" y="142" fill="rgba(255,255,255,.9)" font-size="13">90%</text>
+    <text x="48" y="168" fill="rgba(255,255,255,.85)" font-size="13" font-weight="600">English LA 7</text>
+    <rect x="218" y="88" width="170" height="100" rx="16" fill="url(#g2)"/>
+    <text x="234" y="118" fill="#fff" font-size="28" font-weight="700">B</text>
+    <text x="234" y="142" fill="rgba(255,255,255,.9)" font-size="13">85%</text>
+    <text x="234" y="168" fill="rgba(255,255,255,.85)" font-size="13" font-weight="600">Foreign Lang</text>
+    <rect x="32" y="200" width="170" height="100" rx="16" fill="url(#g3)"/>
+    <text x="48" y="230" fill="#fff" font-size="28" font-weight="700">C+</text>
+    <text x="48" y="254" fill="rgba(255,255,255,.9)" font-size="13">77%</text>
+    <text x="48" y="280" fill="rgba(255,255,255,.85)" font-size="13" font-weight="600">Global Studies</text>
+    <rect x="218" y="200" width="170" height="100" rx="16" fill="url(#g4)"/>
+    <text x="234" y="230" fill="#fff" font-size="28" font-weight="700">A</text>
+    <text x="234" y="254" fill="rgba(255,255,255,.9)" font-size="13">100%</text>
+    <text x="234" y="280" fill="rgba(255,255,255,.85)" font-size="13" font-weight="600">PE / Health</text>
+  </g>
+  <text x="32" y="332" fill="#f5f5f7" font-family="system-ui" font-size="15" font-weight="600">Assignments</text>
+  <rect x="32" y="348" width="112" height="40" rx="12" fill="#3a3a3c"/>
+  <text x="88" y="373" text-anchor="middle" fill="#f5f5f7" font-family="system-ui" font-size="13">Upcoming</text>
+  <rect x="154" y="348" width="100" height="40" rx="12" fill="#3a3a3c"/>
+  <text x="204" y="373" text-anchor="middle" fill="#f5f5f7" font-family="system-ui" font-size="13">Recent</text>
+  <rect x="264" y="348" width="124" height="40" rx="12" fill="#3a3a3c"/>
+  <text x="310" y="373" text-anchor="middle" fill="#f5f5f7" font-family="system-ui" font-size="13">Status</text>
+  <circle cx="368" cy="358" r="9" fill="#ff453a"/>
+  <text x="368" y="362" text-anchor="middle" fill="#fff" font-family="system-ui" font-size="10" font-weight="700">14</text>
+  <rect x="32" y="404" width="356" height="52" rx="12" fill="#3a3a3c"/>
+  <text x="48" y="426" fill="#f5f5f7" font-family="system-ui" font-size="14" font-weight="500">Chapter 4 Quiz</text>
+  <text x="48" y="444" fill="#8e8e93" font-family="system-ui" font-size="11">Global Studies · Fri</text>
+  <text x="360" y="434" text-anchor="end" fill="#30d158" font-family="system-ui" font-size="14" font-weight="600">90%</text>
+  <rect x="32" y="464" width="356" height="52" rx="12" fill="#3a3a3c"/>
+  <text x="48" y="486" fill="#f5f5f7" font-family="system-ui" font-size="14" font-weight="500">Vocab Set 12</text>
+  <text x="48" y="504" fill="#8e8e93" font-family="system-ui" font-size="11">Foreign Language · Due Mon</text>
+  <text x="360" y="494" text-anchor="end" fill="#8e8e93" font-family="system-ui" font-size="13">—</text>
+  <text x="210" y="540" text-anchor="middle" fill="#636366" font-family="system-ui" font-size="12" font-weight="600">V2 — powerschool-v2-card (app tiles)</text>
+</svg>
