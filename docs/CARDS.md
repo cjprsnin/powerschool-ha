@@ -6,7 +6,7 @@ Three custom card variants ship in [`www/`](../www/).
 |------|------|--------|----------|
 | **V1** | `custom:powerschool-card` | Expandable course list | Desktop detail, history scope |
 | **V2** | `custom:powerschool-v2-card` | App-style color tiles + drill-down | Phone / daily check-in |
-| **V3** | `custom:powerschool-v3-card` | Class Overview (V2 engine) | Side-by-side student overview |
+| **V3** | `custom:powerschool-v3-card` | Class Overview (standalone) | Side-by-side student overview |
 
 Resources (Dashboard → Resources), or via HACS after install:
 
@@ -16,7 +16,7 @@ https://cdn.jsdelivr.net/gh/cjprsnin/powerschool-ha@main/www/powerschool-v2-card
 https://cdn.jsdelivr.net/gh/cjprsnin/powerschool-ha@main/www/powerschool-v3-card.js
 ```
 
-V3 is a thin alias of V2 (same UI engine). Load **V2 before V3**.
+V3 is a **full standalone** card (same UI style as V2). V1/V2/V3 can load independently.
 
 ---
 
@@ -55,13 +55,19 @@ student: Trent
 
 ![V3 card](images/card-v3.svg)
 
-- Same engine as V2; registered as `powerschool-v3-card` for overview dashboards
-- Use on a “Class Overview” view next to another student
+- Class Overview layout: denser grade grid + Missing & Late panel
+- Registered as `powerschool-v3-card` for overview dashboards
 
 ```yaml
 type: custom:powerschool-v3-card
 student: Teagan
 ```
+
+Direct image links (if the markdown embed is cached):
+
+- [V1 SVG](https://github.com/cjprsnin/powerschool-ha/blob/main/docs/images/card-v1.svg)
+- [V2 SVG](https://github.com/cjprsnin/powerschool-ha/blob/main/docs/images/card-v2.svg)
+- [V3 SVG](https://github.com/cjprsnin/powerschool-ha/blob/main/docs/images/card-v3.svg)
 
 ---
 
@@ -95,7 +101,7 @@ views:
               columns: full
 ```
 
-More YAML: [`examples/lovelace-cards.yaml`](../examples/lovelace-cards.yaml), [`examples/school-v2-dashboard.yaml`](../examples/school-v2-dashboard.yaml).
+More YAML: [`examples/lovelace-cards.yaml`](../examples/lovelace-cards.yaml), [`examples/lovelace-cards-v1-v2-v3.yaml`](../examples/lovelace-cards-v1-v2-v3.yaml), [`examples/school-v2-dashboard.yaml`](../examples/school-v2-dashboard.yaml).
 
 ---
 
