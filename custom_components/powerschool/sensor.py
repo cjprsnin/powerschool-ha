@@ -100,6 +100,9 @@ class PowerSchoolSummarySensor(_StudentEntity, SensorEntity):
         elif self._field == "due_soon_count":
             attrs["assignments"] = student.get("due_soon_assignments") or []
             attrs["window_days"] = 2
+        elif self._field in ("absences", "tardies"):
+            attrs["attendance_status"] = student.get("attendance_status")
+            attrs["by_course"] = student.get("attendance_by_course") or []
 
         return attrs
 
@@ -252,4 +255,7 @@ class PowerSchoolCourseSensor(_StudentEntity, SensorEntity):
             "grade_trend": course.get("grade_trend"),
             "previous_grade_percent": course.get("previous_grade_percent"),
             "grade_history_points": course.get("grade_history_points"),
+            # Attendance (home Grades & Attendance table)
+            "absences": course.get("absences"),
+            "tardies": course.get("tardies"),
         }

@@ -19,6 +19,8 @@ SUMMARY_FIELDS = {
     "ungraded_assignments": ("Ungraded Assignments", None, False),
     "missing": ("Missing Assignments", None, False),
     "late": ("Late Assignments", None, False),
+    "absences": ("Absences", None, False),
+    "tardies": ("Tardies", None, False),
     "upcoming_count": ("Upcoming Assignments", None, False),
     "due_soon_count": ("Due Soon Assignments", None, False),
     "incomplete": ("Incomplete Assignments", None, True),
