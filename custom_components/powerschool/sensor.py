@@ -84,7 +84,7 @@ class PowerSchoolSummarySensor(_StudentEntity, SensorEntity):
     @property
     def extra_state_attributes(self):
         student = self._student()
-        return {
+        attrs = {
             "student": self._student_name,
             "student_id": self._student_id,
             "student_dcid": student.get("student_dcid"),
@@ -93,6 +93,15 @@ class PowerSchoolSummarySensor(_StudentEntity, SensorEntity):
             "photo_source_url": student.get("photo_source_url"),
             "last_update_success": self.coordinator.last_update_success,
         }
+
+        if self._field == "upcoming_count":
+            attrs["assignments"] = student.get("upcoming_assignments") or []
+            attrs["window_days"] = 7
+        elif self._field == "due_soon_count":
+            attrs["assignments"] = student.get("due_soon_assignments") or []
+            attrs["window_days"] = 2
+
+        return attrs
 
 
 class PowerSchoolDiagnosticSensor(_StudentEntity, SensorEntity):
@@ -237,4 +246,10 @@ class PowerSchoolCourseSensor(_StudentEntity, SensorEntity):
                 for a in missing
             ],
             "assignments": assignments,
+            # Grade history / delta
+            "grade_delta": course.get("grade_delta"),
+            "grade_delta_recent": course.get("grade_delta_recent"),
+            "grade_trend": course.get("grade_trend"),
+            "previous_grade_percent": course.get("previous_grade_percent"),
+            "grade_history_points": course.get("grade_history_points"),
         }

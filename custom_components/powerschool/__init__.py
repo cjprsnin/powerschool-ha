@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 import asyncio
 import logging
+import time
 from urllib.parse import urlparse
 
 from homeassistant.config_entries import ConfigEntry
@@ -22,6 +23,7 @@ from .const import (
     PLATFORMS,
     SERVICE_REFRESH,
 )
+from .helpers import collect_upcoming, update_grade_history
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -55,11 +57,52 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def async_update():
         # Retry transient network failures (remote closed connection, timeouts).
         last_err = None
+        start = time.monotonic()
         for attempt in range(3):
             try:
-                return await hass.async_add_executor_job(
+                result = await hass.async_add_executor_job(
                     client.fetch_students, data.get(CONF_STUDENTS, [])
                 )
+
+                # Normalize result shape
+                if not isinstance(result, dict):
+                    result = {"students": result}
+                students = result.get("students") or {}
+
+                # Persist grade history across updates
+                history_store = hass.data.setdefault(DOMAIN, {}).setdefault(
+                    "grade_history", {}
+                )
+
+                for _name, student in students.items():
+                    # Upcoming / due-soon (ungraded only)
+                    due_soon, upcoming = collect_upcoming(student)
+                    student["due_soon_assignments"] = due_soon
+                    student["upcoming_assignments"] = upcoming
+                    student["due_soon_count"] = len(due_soon)
+                    student["upcoming_count"] = len(upcoming)
+
+                    # Grade history per course
+                    for course in student.get("courses") or []:
+                        section_id = str(
+                            course.get("section_id") or course.get("course") or ""
+                        )
+                        key = f"{student.get('student_id')}:{section_id}"
+                        prev_hist = history_store.get(key, [])
+                        percent = course.get("grade_percent")
+                        new_hist, grade_attrs = update_grade_history(
+                            prev_hist, percent
+                        )
+                        history_store[key] = new_hist
+                        course.update(grade_attrs)
+
+                # Preserve any extra top-level keys from the client
+                result["students"] = students
+                result["update_duration_ms"] = int(
+                    (time.monotonic() - start) * 1000
+                )
+                return result
+
             except Exception as err:
                 last_err = err
                 msg = str(err).lower()

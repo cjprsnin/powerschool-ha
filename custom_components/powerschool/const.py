@@ -19,8 +19,18 @@ SUMMARY_FIELDS = {
     "ungraded_assignments": ("Ungraded Assignments", None, False),
     "missing": ("Missing Assignments", None, False),
     "late": ("Late Assignments", None, False),
+    "upcoming_count": ("Upcoming Assignments", None, False),
+    "due_soon_count": ("Due Soon Assignments", None, False),
     "incomplete": ("Incomplete Assignments", None, True),
     "exempt": ("Exempt Assignments", None, True),
     "absent": ("Absent Assignments", None, True),
     "collected": ("Collected Assignments", None, True),
 }
+
+# Upcoming / due-soon windows (days)
+DUE_SOON_DAYS = 2
+UPCOMING_DAYS = 7
+
+# Grade history
+GRADE_HISTORY_MAX = 7
+TREND_THRESHOLD = 0.5  # percentage points
