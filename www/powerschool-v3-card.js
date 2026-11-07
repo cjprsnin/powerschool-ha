@@ -23,7 +23,7 @@ if(!customElements.get('powerschool-v3-card')){
     set hass(h){this._hass=h;const sig=this._states().map(s=>s.entity_id+s.last_updated).join('|');if(sig!==this._sig){this._sig=sig;this._render();this._loadTrends();}}
     getCardSize(){return this._config&&this._config.compact?6:10;}
     static getStubConfig(){return{student:'Trent'};}
-    _isCourseSensor(s){const a=s.attributes||{};return s.entity_id.startsWith('sensor.')&&('section_id' in a||'assignments' in a||'course' in a)&&('student' in a);}
+    _isCourseSensor(s){const a=s.attributes||{};if(!s.entity_id.startsWith('sensor.')||!('student' in a))return false;if('window_days' in a||'attendance_status' in a)return false;const eid=s.entity_id.toLowerCase();if(/due_soon|upcoming_assignments|grade_average|missing_assignments|late_assignments|_status$|absences|tardies/.test(eid))return false;return 'section_id' in a||'missing_homework' in a||'assignment_status' in a;}
     _states(){const stu=(this._config.student||'').toLowerCase();if(!this._hass)return[];return Object.values(this._hass.states).filter(s=>{if(!this._isCourseSensor(s))return false;const a=s.attributes||{};const sn=String(a.student||'').toLowerCase();return !stu||sn===stu||s.entity_id.includes(stu.replace(/\s+/g,'_'));});}
     _avg(states){const gs=states.map(s=>parseFloat(s.state)).filter(n=>!isNaN(n));return gs.length?gs.reduce((a,b)=>a+b,0)/gs.length:null;}
     async _refresh(){if(this._refreshing||!this._hass)return;this._refreshing=true;this._render();try{await this._hass.callService('powerschool','refresh',{});}catch(e){console.warn(e);}this._refreshing=false;this._trendLoaded=false;this._render();this._loadTrends();}
