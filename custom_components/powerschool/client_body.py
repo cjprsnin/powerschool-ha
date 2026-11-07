@@ -345,17 +345,18 @@ def parse_grade_table(src):
     if not rows:
         return []
 
-    def _header_label(cell_html):
-        """Build a searchable label from th/td markup (text, title, alt, aria)."""
+    def _header_label(attrs_str, cell_inner):
+        """Searchable label from cell text + title/alt/aria (not raw attrs)."""
         parts=[]
-        t=strip(cell_html)
+        t=strip(cell_inner)
         if t:
             parts.append(t)
+        blob=(attrs_str or '')+' '+(cell_inner or '')
         for attr in ('title','aria-label','alt','data-label','data-original-title'):
-            m=re.search(r'\b'+attr+r'\s*=\s*["\']([^"\']+)["\']', cell_html or '', re.I)
+            m=re.search(r'\b'+attr+r'\s*=\s*["\']([^"\']+)["\']', blob, re.I)
             if m:
                 parts.append(strip(m.group(1)))
-        for m in re.finditer(r'<img\b[^>]*>', cell_html or '', re.I):
+        for m in re.finditer(r'<img\b[^>]*>', cell_inner or '', re.I):
             alt=re.search(r'\balt\s*=\s*["\']([^"\']+)["\']', m.group(0), re.I)
             if alt:
                 parts.append(strip(alt.group(1)))
@@ -364,32 +365,46 @@ def parse_grade_table(src):
     def _extract_header_row(row_html):
         labels=[]
         for m in re.finditer(r'<(th|td)\b([^>]*)>(.*?)</\1>', row_html, re.I|re.S):
-            label=_header_label(m.group(2)+' '+m.group(3))
+            label=_header_label(m.group(2), m.group(3))
             colspan=intval(attrs(m.group(2)).get('colspan')) or 1
-            labels.extend([label]*max(1, colspan))
+            # Do not expand week-group colspans — they push Absences past data cells.
+            if not label and colspan > 1:
+                labels.extend(['']*colspan)
+            else:
+                labels.append(label)
         return labels
 
+    def _score_header_row(labels):
+        blob=' '.join(labels).lower()
+        score=0
+        if re.search(r'\babsences?\b', blob): score += 5
+        if re.search(r'\btardies?\b', blob): score += 5
+        if re.search(r'\bcourse\b', blob): score += 3
+        if re.search(r'\b(exp|y1|t1|t2|t3)\b', blob): score += 2
+        if re.search(r'last week|this week|colspan|rowspan|scope=', blob): score -= 4
+        return score
+
     header_values=[]
+    candidates=[]
     hm=re.search(r'<caption\b[^>]*\bid=["\']attByClass["\'][^>]*>.*?</caption>',src,re.I|re.S)
-    if hm:
-        after=src[hm.end():]
-        tm=re.search(r'<tr\b[^>]*>(.*?)</tr>',after,re.I|re.S)
-        if tm:
-            header_values=_extract_header_row(tm.group(1))
+    search_from=src[hm.end():] if hm else src
+    for tm in re.finditer(r'<tr\b[^>]*>(.*?)</tr>', search_from, re.I|re.S):
+        labels=_extract_header_row(tm.group(1))
+        if len(labels) < 2:
+            continue
+        candidates.append(labels)
+        if len(candidates) >= 8:
+            break
+    if candidates:
+        ranked=sorted(candidates, key=_score_header_row, reverse=True)
+        if _score_header_row(ranked[0]) > 0:
+            header_values=ranked[0]
     if not header_values:
-        for tm in re.finditer(r'<tr\b[^>]*>(.*?)</tr>',src,re.I|re.S):
-            labels=_extract_header_row(tm.group(1))
+        for labels in candidates:
             blob=' '.join(labels).lower()
-            if len(labels) >= 3 and re.search(r'course|class', blob) and re.search(r'abs|tard|att', blob):
+            if 'course' in blob or 'abs' in blob:
                 header_values=labels
                 break
-    if not header_values:
-        for tm in re.finditer(r'<tr\b[^>]*>(.*?)</tr>',src,re.I|re.S):
-            if re.search(r'<th\b', tm.group(1), re.I):
-                labels=_extract_header_row(tm.group(1))
-                if len(labels) >= 4:
-                    header_values=labels
-                    break
     debug('attByClass headers: %s' % json.dumps(header_values,ensure_ascii=False))
 
     def _header_index(patterns, exclude=None):
@@ -404,13 +419,20 @@ def parse_grade_table(src):
         return None
 
     abs_idx=_header_index([
-        r'absences?', r'^abs\b', r'\babs\b', r'^absent$', r'\babsent\b', r'\bunexcused\b',
-    ], exclude=[r'assignment', r'classwork'])
+        r'^absences?$',
+        r'^abs$',
+        r'^absent$',
+        r'\babsences?\b',
+    ], exclude=[r'assignment', r'classwork', r'week'])
     tardy_idx=_header_index([
-        r'tardies?', r'^tardy?$', r'\btardy\b', r'\btdy\b',
-    ], exclude=[r'start', r'student'])
-    att_idx=_header_index([r'^att$', r'^attend', r'\battendance\b'], exclude=[r'pattern', r'code'])
-    debug('attendance column indexes: absences=%s tardies=%s att=%s' % (abs_idx, tardy_idx, att_idx))
+        r'^tardies?$',
+        r'^tardy$',
+        r'^tdy$',
+        r'\btardies?\b',
+    ], exclude=[r'start', r'student', r'week'])
+    att_idx=_header_index([r'^att$', r'^attend$', r'^attendance$'], exclude=[r'pattern', r'code', r'week'])
+    debug('attendance column indexes: absences=%s tardies=%s att=%s headers=%d' % (
+        abs_idx, tardy_idx, att_idx, len(header_values)))
 
     output=[]
     for i,row in enumerate(rows):
@@ -507,10 +529,17 @@ def parse_grade_table(src):
             n=intval(raw)
             return n if n is not None else None
 
-        absences=_cell_count(abs_idx)
-        tardies=_cell_count(tardy_idx)
-        if absences is None and att_idx is not None and abs_idx is None:
-            absences=_cell_count(att_idx)
+        use_abs, use_tardy, use_att = abs_idx, tardy_idx, att_idx
+        nvals=len(values)
+        if (use_abs is not None and use_abs >= nvals) or (use_tardy is not None and use_tardy >= nvals):
+            if nvals >= 2 and abs_idx is not None and tardy_idx is not None:
+                use_abs, use_tardy = nvals-2, nvals-1
+            elif nvals >= 1 and abs_idx is not None:
+                use_abs = nvals-1
+        absences=_cell_count(use_abs)
+        tardies=_cell_count(use_tardy)
+        if absences is None and use_att is not None and use_abs is None:
+            absences=_cell_count(use_att if use_att < nvals else nvals-1)
 
         output.append({
             'course':course,
