@@ -1,5 +1,9 @@
 # PowerSchool Grades for Home Assistant
 
+<p align="center">
+  <img src="docs/images/logo.svg" alt="PowerSchool Grades" width="160" height="160">
+</p>
+
 Unofficial Home Assistant integration for the PowerSchool Parent Portal.
 
 Pulls grades, assignment counts, missing/late work, course details, and **student profile photos** for selected students.
@@ -67,10 +71,11 @@ Course unique IDs prefer PowerSchool `section_id` so renames do not orphan entit
 ## Services
 
 ```yaml
-service: powerschool.refresh
+action: powerschool.refresh
+data: {}
 ```
 
-Forces an immediate poll of all configured PowerSchool entries.
+Forces an immediate poll of all configured PowerSchool entries. No entity target required.
 
 ## Options
 
