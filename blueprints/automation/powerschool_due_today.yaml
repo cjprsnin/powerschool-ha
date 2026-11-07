@@ -1,0 +1,50 @@
+blueprint:
+  name: PowerSchool due today
+  description: >
+    Morning digest of assignments due today from the upcoming-assignments
+    sensor (ungraded only). Runs at a configurable time.
+  domain: automation
+  input:
+    upcoming_sensor:
+      name: Upcoming assignments sensor
+      selector:
+        entity:
+          integration: powerschool
+          domain: sensor
+    notify_device:
+      name: Notify service (e.g. notify.mobile_app_phone)
+      selector:
+        text:
+    time:
+      name: Time to check
+      default: "07:00:00"
+      selector:
+        time:
+
+trigger:
+  - platform: time
+    at: !input time
+
+condition:
+  - condition: template
+    value_template: >
+      {% set items = state_attr(upcoming_sensor, 'assignments') or [] %}
+      {% set today = items | selectattr('days_until_due', 'equalto', 0) | list %}
+      {{ today | count > 0 }}
+
+action:
+  - variables:
+      upcoming_sensor: !input upcoming_sensor
+      items: >
+        {{ state_attr(upcoming_sensor, 'assignments') or [] }}
+      today: >
+        {{ items | selectattr('days_until_due', 'equalto', 0) | list }}
+  - service: !input notify_device
+    data:
+      title: PowerSchool — due today
+      message: >
+        {{ state_attr(upcoming_sensor, 'friendly_name') }}:
+        {% for a in today %}
+        • {{ a.name }} ({{ a.course }})
+        {% endfor %}
+mode: single

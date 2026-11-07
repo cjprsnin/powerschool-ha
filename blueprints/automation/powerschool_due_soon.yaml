@@ -1,0 +1,41 @@
+blueprint:
+  name: PowerSchool due-soon assignments
+  description: >
+    Notify when a student has assignments due within the due-soon window
+    (default 2 days). Fires when the due-soon count increases.
+  domain: automation
+  input:
+    due_soon_sensor:
+      name: Due soon assignments sensor
+      selector:
+        entity:
+          integration: powerschool
+          domain: sensor
+    notify_device:
+      name: Notify service (e.g. notify.mobile_app_phone)
+      selector:
+        text:
+
+trigger:
+  - platform: state
+    entity_id: !input due_soon_sensor
+
+condition:
+  - condition: template
+    value_template: >
+      {% set n = states(trigger.entity_id) | int(0) %}
+      {% set prev = trigger.from_state.state | int(0) if trigger.from_state else 0 %}
+      {{ n > prev and n > 0 }}
+
+action:
+  - variables:
+      items: "{{ state_attr(trigger.entity_id, 'assignments') or [] }}"
+  - service: !input notify_device
+    data:
+      title: PowerSchool — due soon
+      message: >
+        {{ state_attr(trigger.entity_id, 'friendly_name') }}: {{ states(trigger.entity_id) }} due soon.
+        {% for a in items[:5] %}
+        • {{ a.name }} ({{ a.course }}) — due {{ a.due }}
+        {% endfor %}
+mode: single
