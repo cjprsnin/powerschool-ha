@@ -143,8 +143,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     async def async_refresh_service(call: ServiceCall) -> None:
-        for coord in list(hass.data.get(DOMAIN, {}).values()):
-            await coord.async_request_refresh()
+        # DOMAIN also stores non-coordinator keys (e.g. grade_history).
+        for key, coord in list(hass.data.get(DOMAIN, {}).items()):
+            if isinstance(coord, DataUpdateCoordinator):
+                await coord.async_request_refresh()
 
     if not hass.services.has_service(DOMAIN, SERVICE_REFRESH):
         hass.services.async_register(
@@ -165,6 +167,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
         hass.data[DOMAIN].pop(entry.entry_id, None)
-        if not hass.data.get(DOMAIN) and hass.services.has_service(DOMAIN, SERVICE_REFRESH):
+        still_loaded = any(
+            isinstance(v, DataUpdateCoordinator)
+            for v in hass.data.get(DOMAIN, {}).values()
+        )
+        if not still_loaded and hass.services.has_service(DOMAIN, SERVICE_REFRESH):
             hass.services.async_remove(DOMAIN, SERVICE_REFRESH)
     return unloaded
