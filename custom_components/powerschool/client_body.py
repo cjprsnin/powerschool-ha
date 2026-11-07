@@ -1144,7 +1144,7 @@ def process_student(st, photo_dir=None):
     if not courses:
         debug('No course rows/links found for %s. Student remains valid.'%name);return result
     for c in courses:
-        cr={k:c.get(k) for k in ('course','grade_raw','grade_percent','grade_letter','section_id')}
+        cr={k:c.get(k) for k in ('course','grade_raw','grade_percent','grade_letter','section_id','absences','tardies')}
         cr['assignments']=[]
         cr['is_current_term']=True
         cr['term_label']='Current'
