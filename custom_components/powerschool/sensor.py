@@ -106,6 +106,16 @@ class PowerSchoolSummarySensor(_StudentEntity, SensorEntity):
             attrs["attendance_headers"] = student.get("attendance_headers") or []
             attrs["attendance_abs_column"] = student.get("attendance_abs_column")
             attrs["attendance_tardy_column"] = student.get("attendance_tardy_column")
+        elif self._field in ("absent_days", "tardy_days"):
+            attrs["attendance_day_status"] = student.get("attendance_day_status")
+            attrs["attendance_days"] = student.get("attendance_days") or []
+            attrs["attendance_codes"] = student.get("attendance_codes") or {}
+        elif self._field == "schedule_count":
+            attrs["schedule_status"] = student.get("schedule_status")
+            attrs["schedule"] = student.get("schedule") or []
+        elif self._field == "bulletin_count":
+            attrs["bulletin_status"] = student.get("bulletin_status")
+            attrs["bulletin"] = student.get("bulletin") or []
 
         return attrs
 
