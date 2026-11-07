@@ -345,32 +345,72 @@ def parse_grade_table(src):
     if not rows:
         return []
 
+    def _header_label(cell_html):
+        """Build a searchable label from th/td markup (text, title, alt, aria)."""
+        parts=[]
+        t=strip(cell_html)
+        if t:
+            parts.append(t)
+        for attr in ('title','aria-label','alt','data-label','data-original-title'):
+            m=re.search(r'\b'+attr+r'\s*=\s*["\']([^"\']+)["\']', cell_html or '', re.I)
+            if m:
+                parts.append(strip(m.group(1)))
+        for m in re.finditer(r'<img\b[^>]*>', cell_html or '', re.I):
+            alt=re.search(r'\balt\s*=\s*["\']([^"\']+)["\']', m.group(0), re.I)
+            if alt:
+                parts.append(strip(alt.group(1)))
+        return norm(' '.join(parts))
+
+    def _extract_header_row(row_html):
+        labels=[]
+        for m in re.finditer(r'<(th|td)\b([^>]*)>(.*?)</\1>', row_html, re.I|re.S):
+            label=_header_label(m.group(2)+' '+m.group(3))
+            colspan=intval(attrs(m.group(2)).get('colspan')) or 1
+            labels.extend([label]*max(1, colspan))
+        return labels
+
     header_values=[]
     hm=re.search(r'<caption\b[^>]*\bid=["\']attByClass["\'][^>]*>.*?</caption>',src,re.I|re.S)
     if hm:
         after=src[hm.end():]
         tm=re.search(r'<tr\b[^>]*>(.*?)</tr>',after,re.I|re.S)
         if tm:
-            header_values=[strip(x) for x in re.findall(r'<th\b[^>]*>(.*?)</th>',tm.group(1),re.I|re.S)]
+            header_values=_extract_header_row(tm.group(1))
     if not header_values:
         for tm in re.finditer(r'<tr\b[^>]*>(.*?)</tr>',src,re.I|re.S):
-            ths=[strip(x) for x in re.findall(r'<th\b[^>]*>(.*?)</th>',tm.group(1),re.I|re.S)]
-            if len(ths) >= 3 and any(re.search(r'course|abs|tard',h,re.I) for h in ths):
-                header_values=ths
+            labels=_extract_header_row(tm.group(1))
+            blob=' '.join(labels).lower()
+            if len(labels) >= 3 and re.search(r'course|class', blob) and re.search(r'abs|tard|att', blob):
+                header_values=labels
                 break
+    if not header_values:
+        for tm in re.finditer(r'<tr\b[^>]*>(.*?)</tr>',src,re.I|re.S):
+            if re.search(r'<th\b', tm.group(1), re.I):
+                labels=_extract_header_row(tm.group(1))
+                if len(labels) >= 4:
+                    header_values=labels
+                    break
     debug('attByClass headers: %s' % json.dumps(header_values,ensure_ascii=False))
 
-    def _header_index(patterns):
+    def _header_index(patterns, exclude=None):
+        exclude = exclude or []
         for i,h in enumerate(header_values):
             hl=(h or '').lower()
+            if any(re.search(ex, hl) for ex in exclude):
+                continue
             for pat in patterns:
                 if re.search(pat, hl):
                     return i
         return None
 
-    abs_idx=_header_index([r'^absenc', r'^abs\b', r'absences?', r'^absent'])
-    tardy_idx=_header_index([r'^tard', r'^tdy\b', r'tardies?', r'tardy'])
-    debug('attendance column indexes: absences=%s tardies=%s' % (abs_idx, tardy_idx))
+    abs_idx=_header_index([
+        r'absences?', r'^abs\b', r'\babs\b', r'^absent$', r'\babsent\b', r'\bunexcused\b',
+    ], exclude=[r'assignment', r'classwork'])
+    tardy_idx=_header_index([
+        r'tardies?', r'^tardy?$', r'\btardy\b', r'\btdy\b',
+    ], exclude=[r'start', r'student'])
+    att_idx=_header_index([r'^att$', r'^attend', r'\battendance\b'], exclude=[r'pattern', r'code'])
+    debug('attendance column indexes: absences=%s tardies=%s att=%s' % (abs_idx, tardy_idx, att_idx))
 
     output=[]
     for i,row in enumerate(rows):
@@ -469,6 +509,8 @@ def parse_grade_table(src):
 
         absences=_cell_count(abs_idx)
         tardies=_cell_count(tardy_idx)
+        if absences is None and att_idx is not None and abs_idx is None:
+            absences=_cell_count(att_idx)
 
         output.append({
             'course':course,
@@ -485,6 +527,9 @@ def parse_grade_table(src):
         })
 
     debug('Parsed %d actual ccid course rows' % len(output))
+    parse_grade_table.last_headers = list(header_values)
+    parse_grade_table.last_abs_idx = abs_idx
+    parse_grade_table.last_tardy_idx = tardy_idx
     return output
 
 
@@ -1360,6 +1405,10 @@ class PowerSchoolClient:
                     'absences': a if a is not None else None,
                     'tardies': t if t is not None else None,
                 })
+            headers=getattr(parse_grade_table, 'last_headers', None) or []
+            student['attendance_headers']=headers
+            student['attendance_abs_column']=getattr(parse_grade_table, 'last_abs_idx', None)
+            student['attendance_tardy_column']=getattr(parse_grade_table, 'last_tardy_idx', None)
             if att_available:
                 student['absences']=abs_total
                 student['tardies']=tardy_total
