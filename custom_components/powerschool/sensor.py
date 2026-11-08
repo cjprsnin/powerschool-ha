@@ -181,7 +181,16 @@ class PowerSchoolCourseSensor(_StudentEntity, SensorEntity):
         course = self._course()
         if course.get("grade_percent") is not None:
             return course.get("grade_percent")
-        return course.get("grade_letter") or course.get("grade_raw") or None
+        if course.get("grade_letter"):
+            return course.get("grade_letter")
+        if course.get("grade_level"):
+            return course.get("grade_level")
+        tg = course.get("term_grades") or {}
+        for prefer in ("T1", "T2", "T3", "T4", "Q1", "Q2", "Q3", "Q4", "S1", "S2", "Y1"):
+            cell = tg.get(prefer) or {}
+            if cell.get("letter") or cell.get("level") or cell.get("raw"):
+                return cell.get("letter") or cell.get("level") or cell.get("raw")
+        return course.get("grade_raw") or None
 
     @property
     def native_unit_of_measurement(self):
@@ -269,4 +278,7 @@ class PowerSchoolCourseSensor(_StudentEntity, SensorEntity):
             "grade_history_points": course.get("grade_history_points"),
             "absences": course.get("absences"),
             "tardies": course.get("tardies"),
+            "grade_level": course.get("grade_level"),
+            "grade_scale": course.get("grade_scale"),
+            "term_grades": course.get("term_grades") or {},
         }

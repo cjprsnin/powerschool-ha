@@ -327,14 +327,21 @@ def grade_value(t):
     m=re.fullmatch(r'([A-F][+-]?)(\d{1,3})',t,re.I)
     if m:
         letter=m.group(1).upper();pct=float(m.group(2))
-        return {'raw':t,'earned':None,'possible':None,'percent':pct,'letter':letter}
+        return {'raw':t,'earned':None,'possible':None,'percent':pct,'letter':letter,'scale':'letter'}
     m=re.search(r'(\d+(?:\.\d+)?)\s*/\s*(\d+(?:\.\d+)?)',t)
     if m:
         e,p=float(m.group(1)),float(m.group(2));return {'raw':t,'earned':e,'possible':p,'percent':round(e/p*100,2) if p else None,'letter':None}
     m=re.search(r'(\d+(?:\.\d+)?)\s*%',t)
     if m:return {'raw':t,'percent':float(m.group(1)),'letter':None}
     m=re.fullmatch(r'([A-F][+-]?)',t,re.I)
-    if m:return {'raw':t,'percent':None,'letter':m.group(1).upper()}
+    if m:return {'raw':t,'percent':None,'letter':m.group(1).upper(),'scale':'letter'}
+    # Elementary / standards proficiency scales
+    m=re.fullmatch(r'([1-4])',t)
+    if m:return {'raw':t,'percent':None,'letter':None,'level':m.group(1),'scale':'standards'}
+    m=re.fullmatch(r'(E|M|S|N|ES|MS|NY|ME|EX|PR|BG|ND)',t,re.I)
+    if m:return {'raw':t,'percent':None,'letter':m.group(1).upper(),'level':m.group(1).upper(),'scale':'standards'}
+    if re.fullmatch(r'[A-Za-z0-9.+\-]{1,6}', t):
+        return {'raw':t,'percent':None,'letter':None,'level':t,'scale':'other'}
     return {'raw':t,'percent':None,'letter':None}
 
 def parse_grade_table(src):
@@ -434,6 +441,14 @@ def parse_grade_table(src):
     debug('attendance column indexes: absences=%s tardies=%s att=%s headers=%d' % (
         abs_idx, tardy_idx, att_idx, len(header_values)))
 
+    term_cols={}
+    for hi,h in enumerate(header_values):
+        hl=re.sub(r'\s+','', (h or '').strip().upper())
+        if re.fullmatch(r'(T|Q|S|P)\d+|Y1|S1|S2|SEM\d?', hl):
+            term_cols[hl]=hi
+    if term_cols:
+        debug('term columns: %s' % term_cols)
+
     output=[]
     for i,row in enumerate(rows):
         row_id=row['attrs'].get('id','')
@@ -518,6 +533,27 @@ def parse_grade_table(src):
         if DEBUG:
             debug('ccid row %d id=%s course=%r grade=%r score_links=%d' % (i,row_id,course,grade_raw,len(score_links)))
 
+        # Term / report-card style columns (T1, T2, Y1, ...)
+        term_grades={}
+        for tcode, tidx in term_cols.items():
+            if tidx is None or tidx >= len(values):
+                continue
+            raw=values[tidx]
+            if not raw or raw in ('','-','--','—','N/A','n/a','.'):
+                continue
+            tg=grade_value(raw)
+            term_grades[tcode]=tg
+        # Prefer current-looking term cell when score link had no grade text
+        if not grade_raw and term_grades:
+            for prefer in ('T1','T2','T3','T4','Q1','Q2','Q3','Q4','S1','S2','Y1'):
+                if prefer in term_grades and term_grades[prefer].get('raw'):
+                    grade_raw=term_grades[prefer]['raw']
+                    break
+            if not grade_raw:
+                for prefer in sorted(term_grades.keys()):
+                    if term_grades[prefer].get('raw'):
+                        grade_raw=term_grades[prefer]['raw']
+                        break
         g=grade_value(grade_raw)
 
         def _cell_count(idx):
@@ -558,6 +594,9 @@ def parse_grade_table(src):
             'grade_raw':grade_raw,
             'grade_percent':g.get('percent'),
             'grade_letter':g.get('letter'),
+            'grade_level':g.get('level'),
+            'grade_scale':g.get('scale'),
+            'term_grades':{k:{'raw':v.get('raw'),'percent':v.get('percent'),'letter':v.get('letter'),'level':v.get('level'),'scale':v.get('scale')} for k,v in term_grades.items()},
             'links':links,
             'section_id':section_id,
             'row_id':row_id,
@@ -1294,7 +1333,7 @@ def process_student(st, photo_dir=None):
     if not courses:
         debug('No course rows/links found for %s. Student remains valid.'%name);return result
     for c in courses:
-        cr={k:c.get(k) for k in ('course','grade_raw','grade_percent','grade_letter','section_id','absences','tardies')}
+        cr={k:c.get(k) for k in ('course','grade_raw','grade_percent','grade_letter','grade_level','grade_scale','term_grades','section_id','absences','tardies')}
         cr['assignments']=[]
         cr['is_current_term']=True
         cr['term_label']='Current'
