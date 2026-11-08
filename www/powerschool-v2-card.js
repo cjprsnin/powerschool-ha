@@ -1,4 +1,4 @@
-/* powerschool-v2-card — app-style with 14d grade sparklines + trends */
+/* powerschool-v2-card — app-style with 14d grade sparklines + trends; teacher/room */
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
 const LET=[[93,'A'],[90,'A-'],[87,'B+'],[83,'B'],[80,'B-'],[77,'C+'],[73,'C'],[70,'C-'],[67,'D+'],[63,'D'],[60,'D-']];
 const letter=p=>{if(p==null||isNaN(p))return '\u2013';const r=Math.round(p);for(const [m,l] of LET)if(r>=m)return l;return 'F';};
@@ -15,7 +15,7 @@ function palette(name){const n=name.toLowerCase();
  if(/language|spanish|french|german|latin/.test(n))return PAL[4];
  if(/physical|\bpe\b|health|gym/.test(n))return PAL[5];
  let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))>>>0;return PAL[h%PAL.length];}
-console.info('powerschool-v2-card loaded (sparklines)');
+console.info('powerschool-v2-card loaded (sparklines + teacher)');
 if(!customElements.get('powerschool-v2-card')){
   class PowerSchoolV2Card extends HTMLElement{
     constructor(){super();this.attachShadow({mode:'open'});this._view={t:'home'};this._trend={};this._spark={};this._trendLoaded=false;this._trendLoading=false;this._sig='';this._refreshing=false;}
@@ -23,7 +23,7 @@ if(!customElements.get('powerschool-v2-card')){
     set hass(h){this._hass=h;const sig=this._states().map(s=>s.entity_id+s.last_updated).join('|');if(sig!==this._sig){this._sig=sig;this._render();this._loadTrends();}}
     getCardSize(){return this._config&&this._config.compact?6:10;}
     static getStubConfig(){return{student:'Trent'};}
-    _isCourseSensor(s){const a=s.attributes||{};if(!s.entity_id.startsWith('sensor.')||!('student' in a))return false;if('window_days' in a||'attendance_status' in a)return false;const eid=s.entity_id.toLowerCase();if(/due_soon|upcoming_assignments|grade_average|missing_assignments|late_assignments|_status$|absences|tardies/.test(eid))return false;return 'section_id' in a||'missing_homework' in a||'assignment_status' in a;}
+    _isCourseSensor(s){const a=s.attributes||{};if(!s.entity_id.startsWith('sensor.')||!('student' in a))return false;if('window_days' in a||'attendance_status' in a)return false;const eid=s.entity_id.toLowerCase();if(/due_soon|upcoming_assignments|grade_average|missing_assignments|late_assignments|ungraded_assignments|assignment_count|course_count|_status$|absences|tardies|absent_days|tardy_days|bulletin|schedule_periods|class_roster/.test(eid))return false;return 'section_id' in a||'missing_homework' in a||'assignment_status' in a;}
     _states(){const stu=(this._config.student||'').toLowerCase();const hide=!this._config.show_empty;
       return Object.values(this._hass.states).filter(s=>{
         if(!this._isCourseSensor(s))return false;
@@ -56,13 +56,13 @@ if(!customElements.get('powerschool-v2-card')){
     _sparkSvg(pts,dir){if(!pts||pts.length<2)return '';const W=56,H=18;const vs=pts.map(p=>p.v);let min=Math.min(...vs),max=Math.max(...vs);if(max-min<0.5){min-=1;max+=1;}const step=W/(pts.length-1);const poly=pts.map((p,i)=>{const x=(i*step).toFixed(1);const y=(H-((p.v-min)/(max-min))*H).toFixed(1);return x+','+y;}).join(' ');const stroke=dir==='up'?'#8ef0b0':(dir==='down'?'#ffb3a8':'rgba(255,255,255,.7)');return `<svg class="spark" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline fill="none" stroke="${stroke}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" points="${poly}"/></svg>`;}
     _data(){const cs=this._states().map(s=>{const a=s.attributes;let nm=String(a.friendly_name||s.entity_id).replace(/^PowerSchool\s+/i,'').replace(new RegExp('^'+String(a.student||'\\S+').replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s+','i'),'');
       const p=parseFloat(s.state);const col=palette(nm);
-      return{id:s.entity_id,name:nm,pct:isNaN(p)?null:p,letter:isNaN(p)?'\u2013':letter(p),col,a,trend:this._trend[s.entity_id],assignments:(a.assignments||[]).map(x=>Object.assign({},x,{course:nm,col,cid:s.entity_id}))};});
+      return{id:s.entity_id,name:nm,pct:isNaN(p)?null:p,letter:isNaN(p)?'\u2013':letter(p),col,a,teacher:a.teacher||'',room:a.room||'',trend:this._trend[s.entity_id],assignments:(a.assignments||[]).map(x=>Object.assign({},x,{course:nm,col,cid:s.entity_id}))};});
       if(this._config.sort==='grade')cs.sort((x,y)=>(y.pct??-1)-(x.pct??-1));else cs.sort((x,y)=>x.name.localeCompare(y.name));return cs;}
     _grad(c){return `linear-gradient(160deg,${c[0]},${c[1]})`;}
     _home(){const cs=this._data();const nums=cs.map(c=>c.pct).filter(n=>n!=null);const avg=nums.length?Math.round(nums.reduce((a,b)=>a+b,0)/nums.length*10)/10:null;
       let miss=0,late=0;cs.forEach(c=>{(c.assignments||[]).forEach(a=>{if(a.missing)miss++;else if(a.late&&a.percent==null)late++;});});
       const tiles=cs.map(c=>{const mk=this._sparkSvg(this._spark&&this._spark[c.id],c.trend)+this._trendMark(c.trend);
-        return `<div class="tile" data-id="${esc(c.id)}"><div class="art" style="background:${this._grad(c.col)}"><div class="l">${esc(c.letter)}</div><div class="p">${mk}${c.pct!=null?Math.round(c.pct)+'%':''}</div></div><div class="nm">${esc(c.name)}</div></div>`;}).join('');
+        return `<div class="tile" data-id="${esc(c.id)}"><div class="art" style="background:${this._grad(c.col)}"><div class="l">${esc(c.letter)}</div><div class="p">${mk}${c.pct!=null?Math.round(c.pct)+'%':''}</div></div><div class="nm">${esc(c.name)}</div>${c.teacher||c.room?`<div class="meta">${esc([c.teacher,c.room?('Rm '+c.room):''].filter(Boolean).join(' · '))}</div>`:''}</div>`;}).join('');
       return `<div class="top"><h2>${esc(this._config.student||'Student')}</h2><button class="btn" type="button" data-a="refresh" title="Refresh"><ha-icon icon="mdi:refresh"></ha-icon></button></div>
         <div class="stats"><div class="st"><b class="${gcls(avg)}">${avg==null?'\u2013':avg+'%'}</b><span>Average</span></div><div class="st"><b>${cs.length}</b><span>Classes</span></div><div class="st"><b>${miss}</b><span>Missing</span></div><div class="st"><b>${late}</b><span>Late</span></div></div>
         <div class="grid">${tiles||'<div class="empty">No courses</div>'}</div><div class="sub" style="margin-top:8px">Tap a class for assignments</div>`;}
@@ -74,7 +74,7 @@ if(!customElements.get('powerschool-v2-card')){
       const rows=as.map(x=>{const miss=!!x.missing;const late=!!x.late&&x.percent==null;let score=miss?'Missing':late?'Late':(x.percent!=null?(Math.round(x.percent*10)/10)+'%':'Ungraded');
         return `<div class="row"><div class="mid"><div class="t1">${esc(x.name||'Assignment')}</div><div class="t2">${x.category?esc(x.category)+' \u00b7 ':''}${x.due?esc(x.due):''}</div></div><div class="sc ${gcls(x.percent)}">${score}</div></div>`;}).join('')||'<div class="row"><div class="mid">No assignments</div></div>';
       return `<div class="back" data-a="back"><ha-icon icon="mdi:chevron-left"></ha-icon> Dashboard</div>
-        <div class="hero" style="background:${this._grad(c.col)}"><div class="l">${esc(c.letter)}</div><div><div class="n">${esc(c.name)}</div><div class="p">${mk}${c.pct!=null?Math.round(c.pct)+'%':'No grade yet'}</div></div></div>
+        <div class="hero" style="background:${this._grad(c.col)}"><div class="l">${esc(c.letter)}</div><div><div class="n">${esc(c.name)}</div><div class="p">${mk}${c.pct!=null?Math.round(c.pct)+'%':'No grade yet'}</div>${c.teacher||c.room?`<div class="sub" style="opacity:.9;margin-top:4px">${esc([c.teacher,c.room?('Rm '+c.room):''].filter(Boolean).join(' · '))}</div>`:''}</div></div>
         <div class="stats"><div class="st"><b>${a.assignment_count??as.length}</b><span>Total</span></div><div class="st"><b>${a.graded_assignments??'\u2013'}</b><span>Graded</span></div><div class="st"><b>${a.missing??0}</b><span>Missing</span></div><div class="st"><b>${a.late??0}</b><span>Late</span></div></div>
         ${cats?`<div class="sec">Categories</div><div class="card">${cats}</div>`:''}
         <div class="sec">Assignments</div><div class="card">${rows}</div>`;}
@@ -95,7 +95,8 @@ if(!customElements.get('powerschool-v2-card')){
 .art .l{font-size:58px;font-weight:600;line-height:1}
 .art .p{position:absolute;top:8px;right:12px;font-size:20px;font-weight:600;display:flex;align-items:center;gap:2px}
 .art .p ha-icon{--mdc-icon-size:18px}.art .p ha-icon.up{color:#8ef0b0}.art .p ha-icon.down{color:#ffb3a8}
-.nm{padding:12px 12px 14px;font-size:16px;color:var(--primary-text-color)}
+.nm{padding:12px 12px 4px;font-size:16px;color:var(--primary-text-color)}
+.meta{font-size:.68rem;opacity:.75;margin:0 12px 12px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--secondary-text-color)}
 .btn{width:36px;height:36px;border-radius:50%;border:none;background:var(--secondary-background-color);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
 .st{background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:12px;padding:8px;text-align:center}
