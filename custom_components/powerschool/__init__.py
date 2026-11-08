@@ -96,7 +96,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         history_store[key] = new_hist
                         course.update(grade_attrs)
 
-                # Preserve any extra top-level keys from the client
                 result["students"] = students
                 duration_ms = int((time.monotonic() - start) * 1000)
                 result["update_duration_ms"] = duration_ms
@@ -155,16 +154,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except Exception:  # noqa: BLE001 — already logged by coordinator
             _LOGGER.exception("PowerSchool background first refresh failed")
 
-    entry.async_on_unload(
-        asyncio.create_task(_background_first_refresh()).cancel  # type: ignore[arg-type]
-    )
-    # Prefer HA helper so the task is cancelled cleanly with the entry.
     entry.async_create_background_task(
         hass, _background_first_refresh(), "powerschool_first_refresh"
     )
 
     async def async_refresh_service(call: ServiceCall) -> None:
-        # DOMAIN also stores non-coordinator keys (e.g. grade_history).
         for key, coord in list(hass.data.get(DOMAIN, {}).items()):
             if isinstance(coord, DataUpdateCoordinator):
                 await coord.async_request_refresh()
