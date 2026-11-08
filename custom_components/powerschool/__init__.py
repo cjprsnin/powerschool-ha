@@ -98,8 +98,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
                 # Preserve any extra top-level keys from the client
                 result["students"] = students
-                result["update_duration_ms"] = int(
-                    (time.monotonic() - start) * 1000
+                duration_ms = int((time.monotonic() - start) * 1000)
+                result["update_duration_ms"] = duration_ms
+                _LOGGER.info(
+                    "PowerSchool refresh finished in %sms (%s student(s))",
+                    duration_ms,
+                    len(students),
                 )
                 return result
 
@@ -137,10 +141,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             minutes=data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
         ),
     )
-    await coordinator.async_config_entry_first_refresh()
+
+    # Register before platforms so entities can attach to the coordinator.
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
+
+    # Do not block HA startup / reboot on a full portal scrape (often 30–90s).
+    # Entities appear briefly as unavailable, then populate when this finishes.
+    async def _background_first_refresh() -> None:
+        try:
+            await coordinator.async_config_entry_first_refresh()
+        except Exception:  # noqa: BLE001 — already logged by coordinator
+            _LOGGER.exception("PowerSchool background first refresh failed")
+
+    entry.async_on_unload(
+        asyncio.create_task(_background_first_refresh()).cancel  # type: ignore[arg-type]
+    )
+    # Prefer HA helper so the task is cancelled cleanly with the entry.
+    entry.async_create_background_task(
+        hass, _background_first_refresh(), "powerschool_first_refresh"
+    )
 
     async def async_refresh_service(call: ServiceCall) -> None:
         # DOMAIN also stores non-coordinator keys (e.g. grade_history).
