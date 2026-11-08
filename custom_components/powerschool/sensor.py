@@ -118,6 +118,9 @@ class PowerSchoolSummarySensor(_StudentEntity, SensorEntity):
             attrs["bulletin"] = student.get("bulletin") or []
         elif self._field == "class_roster_count":
             attrs["class_roster"] = student.get("class_roster") or []
+        elif self._field == "grade_history_count":
+            attrs["grade_history_status"] = student.get("grade_history_status")
+            attrs["grade_history"] = student.get("grade_history") or []
 
         return attrs
 

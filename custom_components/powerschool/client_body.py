@@ -1346,6 +1346,81 @@ def parse_bulletin(src):
     return items[:15]
 
 
+def parse_grade_history(src):
+    """Parse guardian termgrades.html stored-grade table.
+
+    Typical columns: Date Compl | Grade Level | School | Course # | Course |
+    Credit Earned | Credit Attempted | Grade
+    """
+    if not src:
+        return []
+    rows = []
+    tables = re.findall(r'<table\b[^>]*>(.*?)</table>', src, re.I|re.S)
+    blobs = tables if tables else [src]
+    for blob in blobs:
+        for tm in re.finditer(r'<tr\b[^>]*>(.*?)</tr>', blob, re.I|re.S):
+            cells = [strip(x) for x in re.findall(r'<t[dh]\b[^>]*>(.*?)</t[dh]>', tm.group(1), re.I|re.S)]
+            cells = [c for c in cells if c]
+            if len(cells) < 4:
+                continue
+            blob_l = ' '.join(cells).lower()
+            if 'date' in blob_l and 'course' in blob_l and ('credit' in blob_l or 'grade' in blob_l):
+                continue
+            if 'course' in blob_l and 'credit earned' in blob_l:
+                continue
+            date_compl = None
+            grade_level = None
+            school = None
+            course_num = None
+            course = None
+            credit_earned = None
+            credit_attempted = None
+            letter = None
+            if len(cells) >= 8:
+                date_compl = cells[0]
+                grade_level = cells[1]
+                school = cells[2]
+                course_num = cells[3]
+                course = cells[4]
+                credit_earned = cells[5]
+                credit_attempted = cells[6]
+                letter = cells[7]
+            else:
+                for c in cells:
+                    if re.fullmatch(r'\d{1,2}/\d{4}', c) or re.fullmatch(r'\d{1,2}/\d{1,2}/\d{2,4}', c):
+                        date_compl = date_compl or c
+                    elif re.fullmatch(r'\d{1,2}', c) and grade_level is None and int(c) <= 12:
+                        grade_level = c
+                    elif re.fullmatch(r'[A-F][+-]?|\d{1,3}(?:\.\d+)?%?', c, re.I) and letter is None and c not in (grade_level or ''):
+                        letter = c
+                    elif re.fullmatch(r'\d+(?:\.\d+)?', c) and credit_earned is None:
+                        credit_earned = c
+                    elif not course and len(c) > 3 and not re.search(r'http', c, re.I):
+                        if course_num is None and re.fullmatch(r'[A-Z0-9.-]{2,12}', c):
+                            course_num = c
+                        else:
+                            course = c
+            if not course or not letter:
+                continue
+            if re.search(r'^(course|grade|date|school|credit)', course, re.I):
+                continue
+            rows.append({
+                'course': course,
+                'course_number': course_num,
+                'letter': letter,
+                'date_completed': date_compl,
+                'grade_level': grade_level,
+                'school': school,
+                'credit_earned': credit_earned,
+                'credit_attempted': credit_attempted,
+                'is_current_term': False,
+                'term_label': date_compl or 'History',
+            })
+        if rows:
+            break
+    return rows
+
+
 def scrape_portal_extras(home_src=None):
     schedule, schedule_status = [], 'unavailable'
     for path in ('matrixSchedule.html', 'schedule.html', 'studentschedule.html', 'studentSchedule.html', 'weeklySchedule.html', 'studentMatrixSchedule.html', 'myScheduleMatrix.html', 'studentScheduleMatrix.html', 'classSchedule.html'):
@@ -1387,6 +1462,17 @@ def scrape_portal_extras(home_src=None):
             bulletin, bulletin_status = items, 'ok'
             debug('bulletin from %s items=%s' % (url, len(items)))
             break
+    history, history_status = [], 'unavailable'
+    for path in ('termgrades.html', 'historicalGrades.html', 'gradeHistory.html', 'gradeshistory.html'):
+        body, url, status = fetch_html(path)
+        if not body:
+            continue
+        rows = parse_grade_history(body)
+        if rows:
+            history, history_status = rows, 'ok'
+            debug('grade history from %s rows=%s' % (url, len(rows)))
+            break
+
     return {
         'schedule': schedule,
         'schedule_status': schedule_status,
@@ -1399,6 +1485,9 @@ def scrape_portal_extras(home_src=None):
         'bulletin': bulletin,
         'bulletin_status': bulletin_status,
         'bulletin_count': len(bulletin),
+        'grade_history': history,
+        'grade_history_status': history_status,
+        'grade_history_count': len(history),
     }
 
 
@@ -1560,6 +1649,7 @@ def process_student(st, photo_dir=None):
         result.setdefault('schedule_status', 'unavailable')
         result.setdefault('attendance_day_status', 'unavailable')
         result.setdefault('bulletin_status', 'unavailable')
+        result.setdefault('grade_history_status', 'unavailable')
     return result
 
 def main():
