@@ -42,6 +42,26 @@ def clean_course_name(text):
     text=re.sub(r'\s+-\s+Rm:\s*[^\s]+.*$','',text,flags=re.I)
     return norm(text)
 
+def parse_course_meta(text):
+    """Pull teacher + room from the raw Course cell text."""
+    text=norm(text)
+    teacher=None
+    room=None
+    if not text:
+        return teacher, room
+    m=re.search(r'\bEmail\s+(.+?)(?:\s+-\s+Rm:|\s+Rm:|$)', text, re.I)
+    if m:
+        teacher=norm(m.group(1)) or None
+    m=re.search(r'\bRm:\s*([^\s,;]+)', text, re.I)
+    if m:
+        room=norm(m.group(1)) or None
+    if not room:
+        m=re.search(r'\bRoom:\s*([^\s,;]+)', text, re.I)
+        if m:
+            room=norm(m.group(1)) or None
+    return teacher, room
+
+
 def num(x):
     try:return float(str(x).replace('%','').strip())
     except Exception:return None
@@ -498,6 +518,11 @@ def parse_grade_table(src):
             debug('Skipping ccid row %s: could not identify Course cell' % row_id)
             continue
 
+        course_raw = ''
+        if course_index is not None and course_index < len(row.get('cells', [])):
+            course_raw = norm(row['cells'][course_index].get('text', ''))
+        teacher, room = parse_course_meta(course_raw)
+
         # A grade is represented by the text of the first scores.html link
         # that is not an informational [ i ] placeholder. Prefer a link with
         # a begin/end date or the current-term fg value.
@@ -608,6 +633,8 @@ def parse_grade_table(src):
             'cell_attrs':[dict(c.get('attrs',{})) for c in row.get('cells',[])],
             'absences':absences,
             'tardies':tardies,
+            'teacher':teacher,
+            'room':room,
         })
 
     debug('Parsed %d actual ccid course rows' % len(output))
@@ -1430,7 +1457,7 @@ def process_student(st, photo_dir=None):
     if not courses:
         debug('No course rows/links found for %s. Student remains valid.'%name);return result
     for c in courses:
-        cr={k:c.get(k) for k in ('course','grade_raw','grade_percent','grade_letter','grade_level','grade_scale','term_grades','section_id','absences','tardies')}
+        cr={k:c.get(k) for k in ('course','grade_raw','grade_percent','grade_letter','grade_level','grade_scale','term_grades','section_id','absences','tardies','teacher','room')}
         cr['assignments']=[]
         cr['is_current_term']=True
         cr['term_label']='Current'
@@ -1514,6 +1541,18 @@ def process_student(st, photo_dir=None):
             cr['assignment_status']='no_assignments'
         result['courses'].append(cr)
     try:
+        roster=[]
+        for cr in result.get('courses') or []:
+            if not cr.get('course'):
+                continue
+            roster.append({
+                'course': cr.get('course'),
+                'section_id': cr.get('section_id'),
+                'teacher': cr.get('teacher'),
+                'room': cr.get('room'),
+            })
+        result['class_roster']=roster
+        result['class_roster_count']=len(roster)
         extras = scrape_portal_extras(home_src=src)
         result.update(extras)
     except Exception as _ex:

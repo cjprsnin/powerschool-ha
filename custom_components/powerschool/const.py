@@ -28,6 +28,7 @@ SUMMARY_FIELDS = {
     "tardy_days": ("Tardy Days", None, False),
     "bulletin_count": ("Bulletin Items", None, True),
     "standards_course_count": ("Standards Courses", None, True),
+    "class_roster_count": ("Class Roster", None, True),
     "incomplete": ("Incomplete Assignments", None, True),
     "exempt": ("Exempt Assignments", None, True),
     "absent": ("Absent Assignments", None, True),

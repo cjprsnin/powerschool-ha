@@ -116,6 +116,8 @@ class PowerSchoolSummarySensor(_StudentEntity, SensorEntity):
         elif self._field == "bulletin_count":
             attrs["bulletin_status"] = student.get("bulletin_status")
             attrs["bulletin"] = student.get("bulletin") or []
+        elif self._field == "class_roster_count":
+            attrs["class_roster"] = student.get("class_roster") or []
 
         return attrs
 
@@ -281,4 +283,6 @@ class PowerSchoolCourseSensor(_StudentEntity, SensorEntity):
             "grade_level": course.get("grade_level"),
             "grade_scale": course.get("grade_scale"),
             "term_grades": course.get("term_grades") or {},
+            "teacher": course.get("teacher"),
+            "room": course.get("room"),
         }
