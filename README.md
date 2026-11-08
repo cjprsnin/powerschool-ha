@@ -1,14 +1,14 @@
 # PowerSchool Grades for Home Assistant
 
 <p align="center">
-  <img src="docs/images/logo.svg" alt="PowerSchool Grades" width="160" height="160">
+  <img src="https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/docs/images/logo.svg" alt="PowerSchool Grades" width="160" height="160">
 </p>
 
 Unofficial Home Assistant integration for the PowerSchool Parent Portal.
 
 Pulls grades, assignment counts, missing/late work, course details, and **student profile photos** for selected students.
 
-**Version:** 1.3.0
+**Version:** 1.4.0
 
 ## Features
 
