@@ -335,6 +335,8 @@ def grade_value(t):
     if m:return {'raw':t,'percent':float(m.group(1)),'letter':None}
     m=re.fullmatch(r'([A-F][+-]?)',t,re.I)
     if m:return {'raw':t,'percent':None,'letter':m.group(1).upper(),'scale':'letter'}
+    if re.search(r'not\s*available', t, re.I):
+        return {}
     # Elementary / standards proficiency scales
     m=re.fullmatch(r'([1-4])',t)
     if m:return {'raw':t,'percent':None,'letter':None,'level':m.group(1),'scale':'standards'}
@@ -540,6 +542,8 @@ def parse_grade_table(src):
                 continue
             raw=values[tidx]
             if not raw or raw in ('','-','--','—','N/A','n/a','.'):
+                continue
+            if re.search(r'not\s*available', raw, re.I):
                 continue
             tg=grade_value(raw)
             term_grades[tcode]=tg
@@ -1144,9 +1148,21 @@ def parse_schedule(src):
         return []
     junk_course = re.compile(
         r'^(attendance\s*totals?|totals?|period|course|class|teacher|room|time|'
-        r'day|schedule|homeroom\s*attendance|present|absent|tardy)$',
+        r'day|schedule|homeroom\s*attendance|present|absent|tardy|'
+        r'not\s*available|n/?a|\d{2}-\d{2}|exp|y1|t[1-4]|q[1-4])$',
         re.I,
     )
+    year_re = re.compile(r'^\d{2}-\d{2}$')
+    def is_period(c):
+        c = (c or '').strip()
+        if re.fullmatch(r'\d{1,2}', c):
+            return c != '0'
+        if re.fullmatch(r'P(?:er(?:iod)?)?\s*\d{1,2}', c, re.I):
+            return True
+        if re.fullmatch(r'\d{1,2}[A-Za-z]', c):
+            return True
+        return False
+
     rows = []
     tables = re.findall(r'<table\b[^>]*>(.*?)</table>', src, re.I|re.S)
     search_blobs = tables if tables else [src]
@@ -1161,14 +1177,14 @@ def parse_schedule(src):
                 continue
             if 'attendance totals' in blob:
                 continue
+            if re.search(r'\b(absences?|tardies?)\b', blob) and re.search(r'\b(email|rm:|room:)\b', blob):
+                continue
             period = None
             for c in cells[:3]:
-                if re.fullmatch(r'\d{1,2}[A-Za-z]?', c) or re.fullmatch(r'[A-H]', c) or re.match(r'^P(?:er(?:iod)?)?\s*\d+', c, re.I):
+                if is_period(c):
                     period = c
                     break
             if not period:
-                continue
-            if re.fullmatch(r'0', str(period)):
                 continue
             course = ''
             room = ''
@@ -1176,6 +1192,8 @@ def parse_schedule(src):
             times = ''
             for c in cells:
                 if c == period:
+                    continue
+                if year_re.match(c):
                     continue
                 if re.search(r'\d{1,2}:\d{2}\s*[AaPp][Mm]', c):
                     times = c
@@ -1185,9 +1203,17 @@ def parse_schedule(src):
                 elif not course and len(c) > 2:
                     course = c
                 elif course and not teacher and len(c) > 2 and c not in (times, room, course):
-                    if ' ' in c or ',' in c or re.search(r'[A-Za-z]', c):
+                    if ' ' in c or ',' in c:
                         teacher = c
-            if not course or junk_course.match(course.strip()):
+            if not course or junk_course.match(course.strip()) or year_re.match(course.strip()):
+                continue
+            if re.search(r'\bRoom:\s*', course) or re.search(r'\bEmail\b', course) or len(course) > 80:
+                m = re.match(r'^([^(]+?)(?:\s+\d{3,5}|\s+\.|$)', course)
+                if m and len(m.group(1).strip()) > 2:
+                    course = m.group(1).strip()
+                else:
+                    continue
+            if junk_course.match(course.strip()):
                 continue
             if not (times or room or teacher or ' ' in course):
                 continue
@@ -1295,13 +1321,7 @@ def parse_bulletin(src):
 
 def scrape_portal_extras(home_src=None):
     schedule, schedule_status = [], 'unavailable'
-    if home_src:
-        rows = parse_schedule(home_src)
-        if rows:
-            schedule, schedule_status = rows, 'ok'
-            debug('schedule from home.html rows=%s' % len(rows))
-    if schedule_status != 'ok':
-        for path in ('matrixSchedule.html', 'schedule.html', 'studentschedule.html', 'studentSchedule.html', 'weeklySchedule.html', 'studentMatrixSchedule.html', 'myScheduleMatrix.html', 'studentScheduleMatrix.html', 'classSchedule.html'):
+    for path in ('matrixSchedule.html', 'schedule.html', 'studentschedule.html', 'studentSchedule.html', 'weeklySchedule.html', 'studentMatrixSchedule.html', 'myScheduleMatrix.html', 'studentScheduleMatrix.html', 'classSchedule.html'):
             body, url, status = fetch_html(path)
             if not body:
                 continue
@@ -1310,6 +1330,11 @@ def scrape_portal_extras(home_src=None):
                 schedule, schedule_status = rows, 'ok'
                 debug('schedule from %s rows=%s' % (url, len(rows)))
                 break
+    if schedule_status != 'ok' and home_src:
+        rows = parse_schedule(home_src)
+        if rows:
+            schedule, schedule_status = rows, 'ok'
+            debug('schedule from home.html rows=%s' % len(rows))
     attendance = {'days': [], 'codes': {}, 'absent_days': None, 'tardy_days': None, 'status': 'unavailable'}
     for path in ('attendance.html', 'meets.html', 'studentAttendance.html', 'attendanceHistory.html', 'monthcalendar.html'):
         body, url, status = fetch_html(path)
