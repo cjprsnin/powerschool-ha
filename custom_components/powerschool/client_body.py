@@ -1157,6 +1157,10 @@ def parse_attendance_days(src):
             continue
         seen.add(d['date'])
         uniq.append(d)
+    # Recount codes from unique days only (not every HTML match)
+    codes = {}
+    for d in uniq:
+        codes[d['code']] = codes.get(d['code'], 0) + 1
     absent_days = sum(1 for d in uniq if d['code'] in ('A', 'U', 'E', 'X', 'ABS', 'UA', 'EA') or d['code'].startswith('A'))
     tardy_days = sum(1 for d in uniq if d['code'] in ('T', 'TDY') or d['code'].startswith('T'))
     return {'days': uniq[:120], 'codes': codes, 'absent_days': absent_days, 'tardy_days': tardy_days, 'status': 'ok' if uniq else 'unavailable'}
@@ -1178,17 +1182,23 @@ def parse_bulletin(src):
                 break
     return items[:15]
 
-def scrape_portal_extras():
+def scrape_portal_extras(home_src=None):
     schedule, schedule_status = [], 'unavailable'
-    for path in ('matrixSchedule.html', 'schedule.html', 'studentschedule.html', 'studentSchedule.html', 'weeklySchedule.html'):
-        body, url, status = fetch_html(path)
-        if not body:
-            continue
-        rows = parse_schedule(body)
+    if home_src:
+        rows = parse_schedule(home_src)
         if rows:
             schedule, schedule_status = rows, 'ok'
-            debug('schedule from %s rows=%s' % (url, len(rows)))
-            break
+            debug('schedule from home.html rows=%s' % len(rows))
+    if schedule_status != 'ok':
+        for path in ('matrixSchedule.html', 'schedule.html', 'studentschedule.html', 'studentSchedule.html', 'weeklySchedule.html', 'studentMatrixSchedule.html'):
+            body, url, status = fetch_html(path)
+            if not body:
+                continue
+            rows = parse_schedule(body)
+            if rows:
+                schedule, schedule_status = rows, 'ok'
+                debug('schedule from %s rows=%s' % (url, len(rows)))
+                break
     attendance = {'days': [], 'codes': {}, 'absent_days': None, 'tardy_days': None, 'status': 'unavailable'}
     for path in ('attendance.html', 'meets.html', 'studentAttendance.html', 'attendanceHistory.html', 'monthcalendar.html'):
         body, url, status = fetch_html(path)
@@ -1200,6 +1210,11 @@ def scrape_portal_extras():
             debug('attendance days from %s count=%s' % (url, len(parsed['days'])))
             break
     bulletin, bulletin_status = [], 'unavailable'
+    if home_src:
+        items = parse_bulletin(home_src)
+        if items:
+            bulletin, bulletin_status = items, 'ok'
+            debug('bulletin from home.html items=%s' % len(items))
     for path in ('bulletin_list.html', 'studentbulletin.html', 'bulletin.html', 'schoolbulletin.html'):
         body, url, status = fetch_html(path)
         if not body:
@@ -1363,7 +1378,7 @@ def process_student(st, photo_dir=None):
             cr['assignment_status']='no_assignments'
         result['courses'].append(cr)
     try:
-        extras = scrape_portal_extras()
+        extras = scrape_portal_extras(home_src=src)
         result.update(extras)
     except Exception as _ex:
         debug('portal extras failed: %s' % _ex)
