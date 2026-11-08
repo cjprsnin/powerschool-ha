@@ -1142,39 +1142,74 @@ def fetch_html(path_or_url):
 def parse_schedule(src):
     if not src:
         return []
+    junk_course = re.compile(
+        r'^(attendance\s*totals?|totals?|period|course|class|teacher|room|time|'
+        r'day|schedule|homeroom\s*attendance|present|absent|tardy)$',
+        re.I,
+    )
     rows = []
-    for tm in re.finditer(r'<tr\b[^>]*>(.*?)</tr>', src, re.I|re.S):
-        cells = [strip(x) for x in re.findall(r'<t[dh]\b[^>]*>(.*?)</t[dh]>', tm.group(1), re.I|re.S)]
-        cells = [c for c in cells if c]
-        if len(cells) < 2:
+    tables = re.findall(r'<table\b[^>]*>(.*?)</table>', src, re.I|re.S)
+    search_blobs = tables if tables else [src]
+    for blob_html in search_blobs:
+        for tm in re.finditer(r'<tr\b[^>]*>(.*?)</tr>', blob_html, re.I|re.S):
+            cells = [strip(x) for x in re.findall(r'<t[dh]\b[^>]*>(.*?)</t[dh]>', tm.group(1), re.I|re.S)]
+            cells = [c for c in cells if c]
+            if len(cells) < 2:
+                continue
+            blob = ' '.join(cells).lower()
+            if re.search(r'\bperiod\b', blob) and re.search(r'\b(course|class|teacher)\b', blob):
+                continue
+            if 'attendance totals' in blob:
+                continue
+            period = None
+            for c in cells[:3]:
+                if re.fullmatch(r'\d{1,2}[A-Za-z]?', c) or re.fullmatch(r'[A-H]', c) or re.match(r'^P(?:er(?:iod)?)?\s*\d+', c, re.I):
+                    period = c
+                    break
+            if not period:
+                continue
+            if re.fullmatch(r'0', str(period)):
+                continue
+            course = ''
+            room = ''
+            teacher = ''
+            times = ''
+            for c in cells:
+                if c == period:
+                    continue
+                if re.search(r'\d{1,2}:\d{2}\s*[AaPp][Mm]', c):
+                    times = c
+                elif re.search(r'\broom\b', c, re.I) or (re.fullmatch(r'(?:Rm:?\s*)?[A-Z]?\d{2,4}[A-Z]?', c, re.I) and len(c) < 14):
+                    if not room:
+                        room = c
+                elif not course and len(c) > 2:
+                    course = c
+                elif course and not teacher and len(c) > 2 and c not in (times, room, course):
+                    if ' ' in c or ',' in c or re.search(r'[A-Za-z]', c):
+                        teacher = c
+            if not course or junk_course.match(course.strip()):
+                continue
+            if not (times or room or teacher or ' ' in course):
+                continue
+            rows.append({
+                'period': period,
+                'course': course,
+                'teacher': teacher or None,
+                'room': room or None,
+                'time': times or None,
+            })
+        if rows:
+            break
+    seen = set()
+    out = []
+    for r in rows:
+        key = (r['period'], r['course'])
+        if key in seen:
             continue
-        blob = ' '.join(cells).lower()
-        if 'period' in blob and ('course' in blob or 'class' in blob) and len(cells) >= 3:
-            continue
-        period = None
-        for c in cells[:3]:
-            if re.fullmatch(r'\d{1,2}[A-Za-z]?', c) or re.fullmatch(r'[A-H]', c) or re.match(r'^P(?:er(?:iod)?)?\s*\d+', c, re.I):
-                period = c
-                break
-        if not period:
-            continue
-        course = ''
-        room = ''
-        teacher = ''
-        times = ''
-        for c in cells:
-            if re.search(r'\d{1,2}:\d{2}\s*[AaPp][Mm]', c):
-                times = c
-            elif re.search(r'\broom\b', c, re.I) or (re.fullmatch(r'[A-Z]?\d{2,4}[A-Z]?', c) and len(c) < 12):
-                if not room:
-                    room = c
-            elif not course and len(c) > 3 and c != period:
-                course = c
-            elif course and not teacher and len(c) > 3 and c not in (period, times, room, course):
-                teacher = c
-        if course:
-            rows.append({'period': period, 'course': course, 'teacher': teacher or None, 'room': room or None, 'time': times or None})
-    return rows
+        seen.add(key)
+        out.append(r)
+    return out
+
 
 def parse_attendance_days(src):
     if not src:
@@ -1207,19 +1242,56 @@ def parse_attendance_days(src):
 def parse_bulletin(src):
     if not src:
         return []
+    nav = re.compile(
+        r'^(home|grades|attendance|schedule|email|logout|my\s*account|'
+        r'class\s*pages?|teacher\s*comments?|fee|balance|documents?|'
+        r'report\s*cards?|school\s*info|help|print|back|next|previous)$',
+        re.I,
+    )
     items = []
-    for m in re.finditer(r'<div\b[^>]*class=["\'][^"\']*bulletin[^"\']*["\'][^>]*>(.*?)</div>', src, re.I|re.S):
-        t = strip(m.group(1))
-        if t and len(t) > 10:
-            items.append({'text': t[:500]})
-    if not items:
-        for m in re.finditer(r'<li\b[^>]*>(.*?)</li>', src, re.I|re.S):
-            t = strip(m.group(1))
-            if t and len(t) > 25:
-                items.append({'text': t[:500]})
-            if len(items) >= 15:
+    seen = set()
+
+    def add(text, title=None, date=None):
+        t = strip(text)
+        if not t or len(t) < 20:
+            return
+        if nav.match(t):
+            return
+        key = t[:80].lower()
+        if key in seen:
+            return
+        seen.add(key)
+        item = {'text': t[:500]}
+        if title:
+            item['title'] = strip(title)[:120]
+        if date:
+            item['date'] = strip(date)[:40]
+        items.append(item)
+
+    for m in re.finditer(
+        r'<div\b[^>]*class=["\'][^"\']*(?:bulletin|announcement|message-board|school-news)[^"\']*["\'][^>]*>(.*?)</div>',
+        src, re.I|re.S,
+    ):
+        add(m.group(1))
+    for tm in re.finditer(r'<tr\b[^>]*>(.*?)</tr>', src, re.I|re.S):
+        cells = [strip(x) for x in re.findall(r'<t[dh]\b[^>]*>(.*?)</t[dh]>', tm.group(1), re.I|re.S)]
+        cells = [c for c in cells if c]
+        if len(cells) < 2:
+            continue
+        date = None
+        for c in cells:
+            if re.search(r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b', c) or re.search(r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}', c, re.I):
+                date = c
                 break
+        body = max(cells, key=len)
+        if date and body and body != date and len(body) > 25:
+            add(body, date=date)
+    for m in re.finditer(r'<(?:article|section)\b[^>]*>(.*?)</(?:article|section)>', src, re.I|re.S):
+        t = strip(m.group(1))
+        if len(t) > 40 and not nav.match(t):
+            add(t)
     return items[:15]
+
 
 def scrape_portal_extras(home_src=None):
     schedule, schedule_status = [], 'unavailable'
@@ -1229,7 +1301,7 @@ def scrape_portal_extras(home_src=None):
             schedule, schedule_status = rows, 'ok'
             debug('schedule from home.html rows=%s' % len(rows))
     if schedule_status != 'ok':
-        for path in ('matrixSchedule.html', 'schedule.html', 'studentschedule.html', 'studentSchedule.html', 'weeklySchedule.html', 'studentMatrixSchedule.html'):
+        for path in ('matrixSchedule.html', 'schedule.html', 'studentschedule.html', 'studentSchedule.html', 'weeklySchedule.html', 'studentMatrixSchedule.html', 'myScheduleMatrix.html', 'studentScheduleMatrix.html', 'classSchedule.html'):
             body, url, status = fetch_html(path)
             if not body:
                 continue
@@ -1254,7 +1326,7 @@ def scrape_portal_extras(home_src=None):
         if items:
             bulletin, bulletin_status = items, 'ok'
             debug('bulletin from home.html items=%s' % len(items))
-    for path in ('bulletin_list.html', 'studentbulletin.html', 'bulletin.html', 'schoolbulletin.html'):
+    for path in ('bulletin_list.html', 'studentbulletin.html', 'bulletin.html', 'schoolbulletin.html', 'mybulletin.html', 'bulletinboard.html', 'announcements.html', 'schoolBulletin.html'):
         body, url, status = fetch_html(path)
         if not body:
             continue
