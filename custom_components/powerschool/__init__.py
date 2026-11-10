@@ -42,6 +42,25 @@ def normalize_url(url: str) -> str:
     return f"{parsed.scheme}://{parsed.netloc}{path}"
 
 
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    """Migrate config entry from version 1 (single portal) to multi-district."""
+    if config_entry.version < 2:
+        data = dict(config_entry.data)
+        if not data.get(CONF_DISTRICTS) and data.get(CONF_URL):
+            data[CONF_DISTRICTS] = [
+                {
+                    CONF_NAME: data.get(CONF_NAME) or "",
+                    CONF_URL: data.get(CONF_URL),
+                    CONF_USERNAME: data.get(CONF_USERNAME),
+                    CONF_PASSWORD: data.get(CONF_PASSWORD),
+                    CONF_STUDENTS: list(data.get(CONF_STUDENTS) or []),
+                }
+            ]
+        hass.config_entries.async_update_entry(config_entry, data=data, version=2)
+        _LOGGER.info("Migrated PowerSchool entry to version 2 (districts list)")
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     data = dict(entry.data)
     base_url = normalize_url(data.get(CONF_URL, ""))
