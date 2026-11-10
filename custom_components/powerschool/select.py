@@ -20,9 +20,13 @@ class PowerSchoolStudentSelect(CoordinatorEntity, SelectEntity):
         self._attr_unique_id = f"powerschool_{entry_id}_student_selector"
         self._selected = None
 
+    def _students(self):
+        data = self.coordinator.data or {}
+        return data.get("students") or {}
+
     @property
     def options(self):
-        return list(self.coordinator.data.get("students", {}).keys())
+        return list(self._students().keys())
 
     @property
     def current_option(self):
@@ -36,7 +40,7 @@ class PowerSchoolStudentSelect(CoordinatorEntity, SelectEntity):
         name = self.current_option
         if not name:
             return None
-        student = self.coordinator.data.get("students", {}).get(name, {})
+        student = self._students().get(name, {})
         return student.get("photo_url")
 
     async def async_select_option(self, option: str) -> None:
