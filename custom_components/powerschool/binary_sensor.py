@@ -4,6 +4,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
+from homeassistant.core import callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -17,14 +18,38 @@ def _student_key(name, student):
     return f"{_slug(name)}_{student.get('student_id', '')}"
 
 
+def _students(coordinator):
+    data = coordinator.data or {}
+    return data.get("students") or {}
+
+
+def _build_entities(coordinator, known: set[str]):
+    entities = []
+    for name, student in _students(coordinator).items():
+        key = _student_key(name, student)
+        for field, label in (("missing", "Has Missing Work"), ("late", "Has Late Work")):
+            uid = f"powerschool_{key}_has_{field}"
+            if uid in known:
+                continue
+            known.add(uid)
+            entities.append(
+                PowerSchoolFlagBinarySensor(coordinator, name, student, key, field, label)
+            )
+    return entities
+
+
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    entities = []
-    for name, student in coordinator.data.get("students", {}).items():
-        key = _student_key(name, student)
-        entities.append(PowerSchoolFlagBinarySensor(coordinator, name, student, key, "missing", "Has Missing Work"))
-        entities.append(PowerSchoolFlagBinarySensor(coordinator, name, student, key, "late", "Has Late Work"))
-    async_add_entities(entities)
+    known: set[str] = set()
+    async_add_entities(_build_entities(coordinator, known))
+
+    @callback
+    def _on_update() -> None:
+        new = _build_entities(coordinator, known)
+        if new:
+            async_add_entities(new)
+
+    entry.async_on_unload(coordinator.async_add_listener(_on_update))
 
 
 class PowerSchoolFlagBinarySensor(CoordinatorEntity, BinarySensorEntity):
@@ -40,7 +65,7 @@ class PowerSchoolFlagBinarySensor(CoordinatorEntity, BinarySensorEntity):
         self._attr_icon = "mdi:alert-circle" if field == "missing" else "mdi:clock-alert"
 
     def _student(self):
-        return self.coordinator.data.get("students", {}).get(self._student_name, {})
+        return _students(self.coordinator).get(self._student_name, {})
 
     @property
     def is_on(self):
