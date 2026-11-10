@@ -1,5 +1,6 @@
 DOMAIN = "powerschool"
 CONF_URL = "url"
+CONF_NAME = "name"  # optional district / school label
 CONF_USERNAME = "username"
 CONF_PASSWORD = "password"
 CONF_STUDENTS = "students"

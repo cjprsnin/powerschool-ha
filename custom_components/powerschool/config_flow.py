@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
@@ -9,6 +11,7 @@ from homeassistant.helpers import selector
 
 from .client import PowerSchoolClient
 from .const import (
+    CONF_NAME,
     CONF_STUDENTS,
     CONF_UPDATE_INTERVAL,
     CONF_URL,
@@ -24,6 +27,22 @@ def _normalize_url(url: str) -> str:
     if "://" not in url:
         url = "https://" + url
     return url.rstrip("/")
+
+
+def _entry_title(data: dict) -> str:
+    """Human title for a config entry (supports multiple districts)."""
+    name = (data.get(CONF_NAME) or "").strip()
+    if name:
+        return f"PowerSchool ({name})"
+    url = data.get(CONF_URL) or ""
+    try:
+        host = urlparse(url).hostname or ""
+    except Exception:
+        host = ""
+    if host:
+        short = host.split(".")[0]
+        return f"PowerSchool ({short})"
+    return "PowerSchool"
 
 
 class CannotConnect(HomeAssistantError):
@@ -74,6 +93,7 @@ class PowerSchoolConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(CONF_URL): str,
+                vol.Optional(CONF_NAME, default=""): str,
                 vol.Required(CONF_USERNAME): str,
                 vol.Required(CONF_PASSWORD): str,
                 vol.Optional(
@@ -87,42 +107,49 @@ class PowerSchoolConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_students(self, user_input=None):
-        if user_input is not None:
-            self._data[CONF_STUDENTS] = [str(x) for x in user_input[CONF_STUDENTS]]
-            return self.async_create_entry(title="PowerSchool", data=self._data)
-
+        errors: dict[str, str] = {}
         options = [
             {"value": str(s["student_id"]), "label": str(s["name"])}
             for s in self._students
             if s.get("student_id") is not None
         ]
+        if user_input is not None:
+            selected = user_input.get(CONF_STUDENTS) or []
+            if not selected:
+                errors["base"] = "no_students"
+            else:
+                self._data[CONF_STUDENTS] = selected
+                return self.async_create_entry(
+                    title=_entry_title(self._data), data=self._data
+                )
+
         schema = vol.Schema(
             {
                 vol.Required(
-                    CONF_STUDENTS, default=[o["value"] for o in options]
+                    CONF_STUDENTS,
+                    default=[o["value"] for o in options],
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=options,
                         multiple=True,
                         mode=selector.SelectSelectorMode.LIST,
                     )
-                )
+                ),
             }
         )
-        return self.async_show_form(step_id="students", data_schema=schema)
+        return self.async_show_form(
+            step_id="students", data_schema=schema, errors=errors
+        )
 
     @staticmethod
     @callback
-    def async_get_options_flow(
-        config_entry: config_entries.ConfigEntry,
-    ) -> config_entries.OptionsFlow:
-        # HA 2024.12+ injects config_entry on the flow instance; do not
-        # pass it into OptionsFlow.__init__.
-        return PowerSchoolOptionsFlow()
+    def async_get_options_flow(config_entry):
+        return PowerSchoolOptionsFlow(config_entry)
 
 
 class PowerSchoolOptionsFlow(config_entries.OptionsFlow):
-    """Options flow — edit URL/credentials/students/interval."""
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        self.config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
         data = dict(self.config_entry.data)
@@ -131,7 +158,7 @@ class PowerSchoolOptionsFlow(config_entries.OptionsFlow):
             new_data = dict(data)
             new_data.update(user_input)
             self.hass.config_entries.async_update_entry(
-                self.config_entry, data=new_data
+                self.config_entry, data=new_data, title=_entry_title(new_data)
             )
             await self.hass.config_entries.async_reload(self.config_entry.entry_id)
             return self.async_create_entry(title="", data={})
@@ -161,6 +188,7 @@ class PowerSchoolOptionsFlow(config_entries.OptionsFlow):
         schema = vol.Schema(
             {
                 vol.Required(CONF_URL, default=data.get(CONF_URL, "")): str,
+                vol.Optional(CONF_NAME, default=data.get(CONF_NAME, "")): str,
                 vol.Required(
                     CONF_USERNAME, default=data.get(CONF_USERNAME, "")
                 ): str,
