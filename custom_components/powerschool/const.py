@@ -5,6 +5,7 @@ CONF_USERNAME = "username"
 CONF_PASSWORD = "password"
 CONF_STUDENTS = "students"
 CONF_UPDATE_INTERVAL = "update_interval"
+CONF_DISTRICTS = "districts"  # list of {name,url,username,password,students}
 DEFAULT_URL = ""
 DEFAULT_UPDATE_INTERVAL = 15
 PLATFORMS = ["sensor", "select", "binary_sensor"]
