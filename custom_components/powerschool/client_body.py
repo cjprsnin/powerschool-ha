@@ -214,9 +214,26 @@ def try_save_photo_candidates(candidates, student_id, photo_dir):
             return url, local
     return None, None
 
-def save_student_photo(photo_url, student_id, photo_dir):
-    """Download an authenticated student photo into a local web directory."""
-    if not photo_url or not photo_dir:
+def save_student_photo(photo_url, student_id, photo_dir, force=False):
+    """Download an authenticated student photo into a local web directory.
+
+    Skips the network download when a non-empty photo file already exists
+    for this student (set force=True to refresh).
+    """
+    if not photo_dir:
+        return None
+    sid=str(student_id)
+    # Reuse cached photo when present (avoids a portal round-trip every refresh).
+    if not force:
+        for ext in ('.jpg','.jpeg','.png','.webp','.gif'):
+            existing=os.path.join(photo_dir,sid+ext)
+            try:
+                if os.path.isfile(existing) and os.path.getsize(existing)>0:
+                    debug('Using cached student photo %s'%existing)
+                    return '/local/powerschool/'+sid+ext
+            except OSError:
+                pass
+    if not photo_url:
         return None
     try:
         req=Request(photo_url,headers={'User-Agent':UA,'Accept':'image/avif,image/webp,image/apng,image/*,*/*;q=0.8','Referer':HOME_URL})
@@ -234,13 +251,13 @@ def save_student_photo(photo_url, student_id, photo_dir):
         elif 'gif' in lc or raw.startswith(b'GIF8'): ext='.gif'
         os.makedirs(photo_dir,exist_ok=True)
         for old in ('.jpg','.jpeg','.png','.webp','.gif'):
-            try: os.remove(os.path.join(photo_dir,str(student_id)+old))
+            try: os.remove(os.path.join(photo_dir,sid+old))
             except FileNotFoundError: pass
-        path=os.path.join(photo_dir,str(student_id)+ext)
+        path=os.path.join(photo_dir,sid+ext)
         tmp=path+'.tmp'
         with open(tmp,'wb') as f:f.write(raw)
         os.replace(tmp,path)
-        return '/local/powerschool/'+str(student_id)+ext
+        return '/local/powerschool/'+sid+ext
     except Exception as e:
         debug('Student photo download failed: %s'%e)
         return None
