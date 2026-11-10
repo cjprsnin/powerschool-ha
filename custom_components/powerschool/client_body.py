@@ -1205,6 +1205,8 @@ def parse_schedule(src):
             return True
         if re.fullmatch(r'\d{1,2}[A-Za-z]', c):
             return True
+        if re.fullmatch(r'Exp\.?', c, re.I):
+            return True
         return False
 
     rows = []
@@ -1228,7 +1230,35 @@ def parse_schedule(src):
                 if is_period(c):
                     period = c
                     break
+            # POWERSCHOOL_SCHED_V2: matrix rows without a leading period cell
             if not period:
+                course_cells = []
+                for c in cells:
+                    if len(c) < 3:
+                        continue
+                    if re.fullmatch(r'\d{2}-\d{2}', c):
+                        continue
+                    if re.fullmatch(r'\d{1,2}', c) or re.fullmatch(r'P(?:er(?:iod)?)?\s*\d{1,2}', c, re.I):
+                        continue
+                    if re.fullmatch(r'(?:Rm:?\s*)?[A-Z]?\d{1,4}[A-Z]?', c, re.I) and len(c) < 10:
+                        continue
+                    if re.search(r'\d{1,2}:\d{2}\s*[AaPp][Mm]', c):
+                        continue
+                    if re.fullmatch(r'(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*', c, re.I):
+                        continue
+                    course_cells.append(c)
+                for c in course_cells:
+                    name = clean_course_name(c) or c
+                    if not name or len(name) < 3:
+                        continue
+                    tch, rm = parse_course_meta(c)
+                    rows.append({
+                        'period': None,
+                        'course': name,
+                        'teacher': tch,
+                        'room': rm,
+                        'time': None,
+                    })
                 continue
             course = ''
             room = ''
@@ -1323,7 +1353,10 @@ def parse_bulletin(src):
 
     def add(text, title=None, date=None):
         t = strip(text)
-        if not t or len(t) < 20:
+        if not t:
+            return
+        min_len = 12 if title else 18
+        if len(t) < min_len:
             return
         if nav.match(t):
             return
@@ -1343,6 +1376,12 @@ def parse_bulletin(src):
         src, re.I|re.S,
     ):
         add(m.group(1))
+    for m in re.finditer(r'<li\b[^>]*>(.*?)</li>', src, re.I|re.S):
+        inner = m.group(1)
+        t = strip(inner)
+        if len(t) >= 18 and not nav.match(t):
+            add(inner)
+
     for tm in re.finditer(r'<tr\b[^>]*>(.*?)</tr>', src, re.I|re.S):
         cells = [strip(x) for x in re.findall(r'<t[dh]\b[^>]*>(.*?)</t[dh]>', tm.group(1), re.I|re.S)]
         cells = [c for c in cells if c]
