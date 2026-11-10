@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.const import PERCENTAGE
+from homeassistant.core import callback
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -24,21 +25,52 @@ def _course_uid(key, course):
     return f"powerschool_{key}_course_{_slug(course.get('course', 'course'))}"
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+def _students(coordinator):
+    data = coordinator.data or {}
+    return data.get("students") or {}
+
+
+def _build_entities(coordinator, known: set[str]):
+    """Create any sensors not yet registered (returns only new ones)."""
     entities = []
-    for name, student in coordinator.data.get("students", {}).items():
+    for name, student in _students(coordinator).items():
         key = _student_key(name, student)
         for field, (label, unit, diagnostic) in SUMMARY_FIELDS.items():
+            uid = f"powerschool_{key}_{field}"
+            if uid in known:
+                continue
+            known.add(uid)
             entities.append(
                 PowerSchoolSummarySensor(
                     coordinator, name, student, key, field, label, unit, diagnostic
                 )
             )
-        entities.append(PowerSchoolDiagnosticSensor(coordinator, name, student, key))
-        for course in student.get("courses", []):
+        status_uid = f"powerschool_{key}_status"
+        if status_uid not in known:
+            known.add(status_uid)
+            entities.append(PowerSchoolDiagnosticSensor(coordinator, name, student, key))
+        for course in student.get("courses", []) or []:
+            uid = _course_uid(key, course)
+            if uid in known:
+                continue
+            known.add(uid)
             entities.append(PowerSchoolCourseSensor(coordinator, name, student, key, course))
-    async_add_entities(entities)
+    return entities
+
+
+async def async_setup_entry(hass, entry, async_add_entities):
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    known: set[str] = set()
+
+    async_add_entities(_build_entities(coordinator, known))
+
+    @callback
+    def _on_update() -> None:
+        new = _build_entities(coordinator, known)
+        if new:
+            async_add_entities(new)
+
+    entry.async_on_unload(coordinator.async_add_listener(_on_update))
 
 
 class _StudentEntity(CoordinatorEntity):
@@ -49,7 +81,7 @@ class _StudentEntity(CoordinatorEntity):
         self._student_key = key
 
     def _student(self):
-        return self.coordinator.data.get("students", {}).get(self._student_name, {})
+        return _students(self.coordinator).get(self._student_name, {})
 
     @property
     def device_info(self):
