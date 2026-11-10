@@ -58,6 +58,23 @@ def _entry_title(data: dict) -> str:
     return f"PowerSchool ({', '.join(labels[:3])})"
 
 
+def _districts_from_data(data: dict) -> list[dict]:
+    districts = data.get(CONF_DISTRICTS)
+    if isinstance(districts, list) and districts:
+        return [dict(d) for d in districts]
+    if data.get(CONF_URL):
+        return [
+            {
+                CONF_NAME: data.get(CONF_NAME) or "",
+                CONF_URL: data[CONF_URL],
+                CONF_USERNAME: data.get(CONF_USERNAME) or "",
+                CONF_PASSWORD: data.get(CONF_PASSWORD) or "",
+                CONF_STUDENTS: list(data.get(CONF_STUDENTS) or []),
+            }
+        ]
+    return []
+
+
 class CannotConnect(HomeAssistantError):
     pass
 
@@ -108,7 +125,7 @@ class PowerSchoolConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except Exception:
                 errors["base"] = "cannot_connect"
 
-        schema_fields = {
+        schema_fields: dict = {
             vol.Optional(CONF_NAME, default=""): str,
             vol.Required(CONF_URL): str,
             vol.Required(CONF_USERNAME): str,
@@ -178,13 +195,11 @@ class PowerSchoolConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self.async_step_user()
             return await self._async_finish()
 
-        labels = ", ".join(_district_label(d) for d in self._districts) or "1"
         return self.async_show_form(
             step_id="add_another",
             data_schema=vol.Schema(
                 {vol.Required("add_another", default=False): bool}
             ),
-            description_placeholders={"districts": labels},
         )
 
     async def _async_finish(self):
@@ -210,38 +225,28 @@ class PowerSchoolConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
-        return PowerSchoolOptionsFlow(config_entry)
+        # HA 2024.4+: do not pass config_entry into OptionsFlow.__init__
+        return PowerSchoolOptionsFlow()
 
 
 class PowerSchoolOptionsFlow(config_entries.OptionsFlow):
-    """Options: change poll interval or add another district to this entry."""
+    """Options: poll interval or add another district.
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
+    Uses self.config_entry provided by Home Assistant (not set in __init__).
+    """
+
+    def __init__(self) -> None:
         self._pending: dict = {}
         self._students: list = []
 
     def _districts(self) -> list[dict]:
-        data = dict(self.config_entry.data)
-        districts = data.get(CONF_DISTRICTS)
-        if isinstance(districts, list) and districts:
-            return [dict(d) for d in districts]
-        if data.get(CONF_URL):
-            return [
-                {
-                    CONF_NAME: data.get(CONF_NAME) or "",
-                    CONF_URL: data[CONF_URL],
-                    CONF_USERNAME: data.get(CONF_USERNAME) or "",
-                    CONF_PASSWORD: data.get(CONF_PASSWORD) or "",
-                    CONF_STUDENTS: list(data.get(CONF_STUDENTS) or []),
-                }
-            ]
-        return []
+        return _districts_from_data(dict(self.config_entry.data))
 
     async def async_step_init(self, user_input=None):
         districts = self._districts()
         if user_input is not None:
-            if user_input.get("action") == "add":
+            action = user_input.get("action", "save")
+            if action == "add":
                 return await self.async_step_add()
             new_data = dict(self.config_entry.data)
             new_data[CONF_DISTRICTS] = districts
@@ -262,16 +267,18 @@ class PowerSchoolOptionsFlow(config_entries.OptionsFlow):
             await self.hass.config_entries.async_reload(self.config_entry.entry_id)
             return self.async_create_entry(title="", data={})
 
-        labels = ", ".join(_district_label(d) for d in districts) or "(none)"
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Required("action", default="save"): vol.In(
-                        {
-                            "save": f"Save ({labels})",
-                            "add": "Add another district",
-                        }
+                    vol.Required("action", default="save"): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=[
+                                {"value": "save", "label": "Save settings"},
+                                {"value": "add", "label": "Add another district"},
+                            ],
+                            mode=selector.SelectSelectorMode.LIST,
+                        )
                     ),
                     vol.Optional(
                         CONF_UPDATE_INTERVAL,
@@ -281,7 +288,6 @@ class PowerSchoolOptionsFlow(config_entries.OptionsFlow):
                     ): vol.All(vol.Coerce(int), vol.Range(min=5, max=1440)),
                 }
             ),
-            description_placeholders={"districts": labels},
         )
 
     async def async_step_add(self, user_input=None):
