@@ -75,14 +75,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 )
 
                 for _name, student in students.items():
-                    # Upcoming / due-soon (ungraded only)
                     due_soon, upcoming = collect_upcoming(student)
                     student["due_soon_assignments"] = due_soon
                     student["upcoming_assignments"] = upcoming
                     student["due_soon_count"] = len(due_soon)
                     student["upcoming_count"] = len(upcoming)
 
-                    # Grade history per course
                     for course in student.get("courses") or []:
                         section_id = str(
                             course.get("section_id") or course.get("course") or ""
@@ -141,13 +139,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ),
     )
 
-    # Register before platforms so entities can attach to the coordinator.
+    # Seed empty data so platforms can set up before the background scrape finishes.
+    coordinator.data = {"students": {}}
+
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
-    # Do not block HA startup / reboot on a full portal scrape (often 30–90s).
-    # Entities appear briefly as unavailable, then populate when this finishes.
+    # Do not block HA startup on a full portal scrape (often 30–90s).
     async def _background_first_refresh() -> None:
         try:
             await coordinator.async_config_entry_first_refresh()
