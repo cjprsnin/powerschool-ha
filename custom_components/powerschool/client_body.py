@@ -1300,10 +1300,41 @@ def parse_schedule(src):
             })
         if rows:
             break
+    # POWERSCHOOL_SCHED_FILTER_V1
+    junk_name = re.compile(
+        r'^(day|terms?|con|exp|period|course|class|teacher|room|time|schedule|'
+        r'week|this\s*week|last\s*week|homeroom\s*attendance|'
+        r'k?am|k?pm|k?lr|\d{1,2}(?:am|pm|lr)|p(?:am|pm)|'
+        r'mon(day)?|tue(s(day)?)?|wed(nesday)?|thu(rs(day)?)?|fri(day)?)$',
+        re.I,
+    )
     seen = set()
     out = []
     for r in rows:
-        key = (r['period'], r['course'])
+        course = (r.get('course') or '').strip()
+        if not course:
+            continue
+        if junk_name.match(course):
+            continue
+        if re.fullmatch(r'[A-Z]?\d{0,2}[A-Z]{0,3}', course, re.I) and len(course) <= 4:
+            if not r.get('room') and not r.get('teacher'):
+                continue
+        has_meta = bool(r.get('room') or r.get('teacher') or r.get('period') or r.get('time'))
+        if not has_meta and (' ' not in course and len(course) < 8):
+            continue
+        cleaned = clean_course_name(course) or course
+        if cleaned and cleaned != course and len(cleaned) >= 3:
+            r = dict(r)
+            tch, rm = parse_course_meta(course)
+            if tch and not r.get('teacher'):
+                r['teacher'] = tch
+            if rm and not r.get('room'):
+                r['room'] = rm
+            r['course'] = cleaned
+            course = cleaned
+        if junk_name.match(course):
+            continue
+        key = (r.get('period'), course.lower())
         if key in seen:
             continue
         seen.add(key)
@@ -1345,7 +1376,11 @@ def parse_bulletin(src):
     nav = re.compile(
         r'^(home|grades|attendance|schedule|email|logout|my\s*account|'
         r'class\s*pages?|teacher\s*comments?|fee|balance|documents?|'
-        r'report\s*cards?|school\s*info|help|print|back|next|previous)$',
+        r'report\s*cards?|school\s*info|help|print|back|next|previous|'
+        r'school\s*bulletin|announcements?|bulletin|'
+        r'grades\s+and\s+attendance(?:\s+\w+)?|attendance\s+history|'
+        r'email\s+notification|class\s+registration|account\s+preferences|'
+        r'welcome[,\s]+.+|school\s+information)$',
         re.I,
     )
     items = []
