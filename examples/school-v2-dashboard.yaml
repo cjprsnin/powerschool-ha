@@ -1,10 +1,15 @@
-# PowerSchool V2 card — dashboard template
-# Resource: https://cdn.jsdelivr.net/gh/cjprsnin/powerschool-ha@main/www/powerschool-v2-card.js
+# School V2 — PowerSchool V4 cards (Trent + Teagan)
+#
+# Resource (module):
+#   https://cdn.jsdelivr.net/gh/cjprsnin/powerschool-ha@main/www/powerschool-v4-card.js
+# or after HACS update:
+#   /hacsfiles/powerschool-ha/powerschool-v4-card.js
+#   (exact path depends on how HACS serves www/)
 #
 # Card options:
-#   student: required (e.g. Trent, Teagan)
-#   compact: true/false — denser layout for side panels
-#   photo: optional URL for student avatar
+#   student: required (Trent | Teagan)
+#   show_empty: true — keep courses with no grade yet (useful for Teagan)
+#   sort: grade — optional, highest % first
 
 title: School V2
 views:
@@ -19,19 +24,23 @@ views:
         cards:
           - type: heading
             heading: Trent
+            heading_style: title
             icon: mdi:account-school
-          - type: custom:powerschool-v2-card
+          - type: custom:powerschool-v4-card
             student: Trent
             grid_options:
               columns: full
+
       - type: grid
         column_span: 1
         cards:
           - type: heading
             heading: Teagan
+            heading_style: title
             icon: mdi:account-school-outline
-          - type: custom:powerschool-v2-card
+          - type: custom:powerschool-v4-card
             student: Teagan
+            show_empty: true
             grid_options:
               columns: full
 
@@ -40,7 +49,7 @@ views:
     icon: mdi:account
     type: panel
     cards:
-      - type: custom:powerschool-v2-card
+      - type: custom:powerschool-v4-card
         student: Trent
 
   - title: Teagan
@@ -48,5 +57,6 @@ views:
     icon: mdi:account-outline
     type: panel
     cards:
-      - type: custom:powerschool-v2-card
+      - type: custom:powerschool-v4-card
         student: Teagan
+        show_empty: true
