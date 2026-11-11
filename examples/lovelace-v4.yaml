@@ -1,0 +1,27 @@
+# PowerSchool V4 cards — register resource first:
+# /local/powerschool-v4-card.js  (copy from www/ in this repo)
+# Lovelace resource: type module
+
+type: sections
+max_columns: 2
+title: School
+sections:
+  - type: grid
+    cards:
+      - type: heading
+        heading: Trent
+        icon: mdi:account-school
+      - type: custom:powerschool-v4-card
+        student: Trent
+        grid_options:
+          columns: full
+
+  - type: grid
+    cards:
+      - type: heading
+        heading: Teagan
+        icon: mdi:account-school-outline
+      - type: custom:powerschool-v4-card
+        student: Teagan
+        grid_options:
+          columns: full
