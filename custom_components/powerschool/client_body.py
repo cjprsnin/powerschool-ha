@@ -1625,11 +1625,36 @@ def process_student(st, photo_dir=None):
         result['photo_source_url']=photo_url
         local_photo=save_student_photo(photo_url,sid,photo_dir)
     if not local_photo and photo_dir:
-        # Fallback: common PowerSchool studentphoto endpoints using resolved IDs
-        candidates=candidate_photo_urls(sid, student_frn=student_frn, student_dcid=student_dcid)
-        src_url, local_photo = try_save_photo_candidates(candidates, sid, photo_dir)
-        if src_url:
-            result['photo_source_url']=src_url
+        # Fallback: common PowerSchool studentphoto endpoints using resolved IDs.
+        # Cache misses for 7 days so we do not hammer dead photo URLs every poll.
+        miss_path=os.path.join(photo_dir, '%s.none'%sid)
+        skip_candidates=False
+        if os.path.isfile(miss_path):
+            try:
+                age=time.time()-os.path.getmtime(miss_path)
+                if age < 7*86400:
+                    skip_candidates=True
+                    debug('Skipping photo candidates for %s (miss cached %.1fd)'%(sid, age/86400.0))
+            except OSError:
+                pass
+        if not skip_candidates:
+            candidates=candidate_photo_urls(sid, student_frn=student_frn, student_dcid=student_dcid)
+            src_url, local_photo = try_save_photo_candidates(candidates, sid, photo_dir)
+            if src_url:
+                result['photo_source_url']=src_url
+            if local_photo:
+                try:
+                    if os.path.isfile(miss_path):
+                        os.remove(miss_path)
+                except OSError:
+                    pass
+            else:
+                try:
+                    os.makedirs(photo_dir, exist_ok=True)
+                    with open(miss_path, 'w') as f:
+                        f.write(str(int(time.time())))
+                except OSError as e:
+                    debug('Could not write photo miss marker: %s'%e)
     if local_photo:
         result['photo_url']=local_photo
     else:
