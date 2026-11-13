@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import argparse, getpass, html, json, os, re, sys, time
+import argparse, getpass, html, json, os, re, sys, time, threading
 from html.parser import HTMLParser
 from http.cookiejar import CookieJar
 from urllib.parse import urlencode, urljoin, urlparse, parse_qs
@@ -17,6 +17,7 @@ DEBUG=os.environ.get('POWERSCHOOL_DEBUG','').lower() in ('1','true','yes','on')
 GET_ASSIGNMENTS=os.environ.get('POWERSCHOOL_GET_ASSIGNMENTS','1').lower() not in ('0','false','no','off')
 UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/153.0 Safari/537.36'
 jar=CookieJar(); opener=None
+_CLIENT_LOCK=threading.RLock()  # serialize HA scrapes sharing module globals
 
 def debug(s):
     if DEBUG: print('[DEBUG] '+str(s),file=sys.stderr)
@@ -1071,6 +1072,62 @@ def fetch_assignments_for_section(section_id,student_id,debug_tag='course',stude
         debug('Assignment lookup returned HTTP %s with %d bytes but zero parsed assignments for section=%s student_dcid=%s' % (rr['status'], len(rr.get('body','')), section_id, student_dcid))
     return result
 
+
+def fetch_assignments_for_sections(section_ids, student_id, student_dcid=None, debug_tag='batch'):
+    """One /assignment/lookup POST for many section IDs."""
+    ids=[]
+    seen=set()
+    for s in section_ids or []:
+        if s is None: continue
+        s=str(s).strip()
+        if not s or s in seen: continue
+        seen.add(s); ids.append(s)
+    if not ids:
+        return {'by_section':{}, 'assignments':[], 'count':0}
+    if not student_dcid:
+        debug('WARNING: batch section lookup has no resolved student DCID; refusing portal student_id=%s' % student_id)
+        return {'by_section':{}, 'assignments':[], 'count':0, 'error':'No PowerSchool student DCID resolved for batch section lookup'}
+    start,end=current_school_year_dates()
+    ctx={
+        'section_ids':ids,
+        'start_date':start,
+        'end_date':end,
+        'studentdcid':str(student_dcid),
+    }
+    url=BASE_URL+'/ws/xte/assignment/lookup'
+    payload=lookup_payload(ctx,student_id)
+    debug('Batch section lookup: %d section(s) dcid=%s' % (len(ids), student_dcid))
+    debug('Assignment URL: '+url)
+    debug('Assignment payload: '+json.dumps(payload))
+    rr=post_json(url,payload,{'Referer':HOME_URL,'Origin':BASE_URL,'X-Requested-With':'XMLHttpRequest'})
+    if DEBUG:
+        safe=re.sub(r'[^A-Za-z0-9_-]+','_',debug_tag).strip('_') or 'batch'
+        save_debug('powerschool_assignment_response_%s_batch.txt'%safe,rr['body'])
+    if rr['status']>=400:
+        debug('Batch assignment HTTP %s response: %s'%(rr['status'],norm(rr['body'])[:1000]))
+        return {'by_section':{}, 'assignments':[], 'count':0, 'error':'Assignment lookup HTTP %s'%rr['status'], 'response_status':rr['status']}
+    parsed=parse_assignments(rr['body'])
+    flat=parsed.get('assignments') or []
+    by_section={}
+    for a in flat:
+        key=str(a.get('section_dcid') or '')
+        if not key:
+            continue
+        bucket=by_section.setdefault(key, {'assignments':[], 'count':0, 'section_id':key})
+        bucket['assignments'].append(a)
+        bucket['count']=len(bucket['assignments'])
+    for sid in ids:
+        by_section.setdefault(sid, {'assignments':[], 'count':0, 'section_id':sid})
+    debug('Batch assignment lookup: %d assignment(s) across %d section bucket(s)' % (len(flat), len(by_section)))
+    return {
+        'by_section': by_section,
+        'assignments': flat,
+        'count': len(flat),
+        'response_status': rr['status'],
+        'response_bytes': len(rr.get('body','')),
+        'student_dcid': str(student_dcid),
+    }
+
 def fetch_assignments(score_url,student_id,debug_tag='course',section_id=None,student_dcid=None):
     r=get(score_url)
     if r['status']>=400:return {'count':0,'assignments':[],'error':'Score page HTTP %s'%r['status']}
@@ -1661,15 +1718,14 @@ def process_student(st, photo_dir=None):
         debug('No student photo found for %s (id=%s frn=%s dcid=%s)'%(name,sid,student_frn,student_dcid))
     if not courses:
         debug('No course rows/links found for %s. Student remains valid.'%name);return result
+    # Phase 1: build course shells + discover section ids without assignment HTTP
+    pending=[]
     for c in courses:
         cr={k:c.get(k) for k in ('course','grade_raw','grade_percent','grade_letter','grade_level','grade_scale','term_grades','section_id','absences','tardies','teacher','room')}
         cr['assignments']=[]
         cr['is_current_term']=True
         cr['term_label']='Current'
         link=score_link(c)
-        # Try the course page itself before using the legacy compatibility
-        # fallback. This keeps course-specific knowledge out of the normal
-        # discovery path.
         if not cr.get('section_id'):
             discovered=discover_section_id_from_source(src,c.get('course',''))
             if discovered:
@@ -1677,14 +1733,39 @@ def process_student(st, photo_dir=None):
                 cr['section_id_source']='home_page_discovery'
         if DEBUG and not link:
             debug_course_discovery(c,src)
+        pending.append((c, cr, link))
+
+    # Phase 2: one multi-section assignment lookup when DCID + section ids known
+    by_section={}
+    if GET_ASSIGNMENTS and student_dcid:
+        batch_ids=[]
+        for _c, cr, _link in pending:
+            if cr.get('section_id'):
+                batch_ids.append(str(cr['section_id']))
+        if batch_ids:
+            batch=fetch_assignments_for_sections(
+                batch_ids, sid, student_dcid=student_dcid,
+                debug_tag='%s_batch'%re.sub(r'[^A-Za-z0-9_-]+','_',name),
+            )
+            by_section=batch.get('by_section') or {}
+            if batch.get('error'):
+                debug('Batch assignment lookup error for %s: %s'%(name, batch.get('error')))
+            else:
+                debug('Batch filled %d section bucket(s) for %s'%(len(by_section), name))
+
+    # Phase 3: attach assignments (batch first, fall back per-course)
+    for c, cr, link in pending:
         if not GET_ASSIGNMENTS:
             cr['assignment_count']=0
             cr['assignment_status']='disabled'
             result['courses'].append(cr)
             continue
-        if not link and cr.get('section_id'):
-            # No scores.html link, but we have a live section ID. Ask the same
-            # XTE assignment service directly instead of declaring no_score_link.
+        ar=None
+        sec=str(cr.get('section_id') or '')
+        if sec and sec in by_section and not by_section[sec].get('error'):
+            ar=by_section[sec]
+            cr['assignment_discovery']='batch_section_lookup'
+        elif not link and cr.get('section_id'):
             cr['assignment_discovery']='direct_section_lookup'
             ar=fetch_assignments_for_section(cr.get('section_id'),sid,'%s_%s'%(sid,re.sub(r'[^A-Za-z0-9_-]+','_',c.get('course','course'))),student_dcid=student_dcid)
         elif not link:
@@ -1693,14 +1774,19 @@ def process_student(st, photo_dir=None):
             result['courses'].append(cr)
             continue
         else:
-            ar=fetch_assignments(
-                urljoin(HOME_URL,link['href']),
-                sid,
-                '%s_%s'%(sid,re.sub(r'[^A-Za-z0-9_-]+','_',c.get('course','course'))),
-                section_id=cr.get('section_id'),
-                student_dcid=student_dcid,
-            )
-        # Carry the DCID learned from a normal scores.html page forward to later courses without a scores link.
+            if sec and sec in by_section:
+                ar=by_section[sec]
+                cr['assignment_discovery']='batch_section_lookup'
+            else:
+                ar=fetch_assignments(
+                    urljoin(HOME_URL,link['href']),
+                    sid,
+                    '%s_%s'%(sid,re.sub(r'[^A-Za-z0-9_-]+','_',c.get('course','course'))),
+                    section_id=cr.get('section_id'),
+                    student_dcid=student_dcid,
+                )
+        if not ar:
+            ar={'assignments':[], 'count':0}
         if ar.get('student_dcid'):
             student_dcid=str(ar['student_dcid'])
             result['student_dcid']=student_dcid
@@ -1712,9 +1798,8 @@ def process_student(st, photo_dir=None):
         cr['assignment_count']=ar.get('count',len(cr['assignments']))
         if ar.get('section_id'):
             cr['section_id']=ar['section_id']
-            if link:
+            if link and cr.get('assignment_discovery')!='batch_section_lookup':
                 cr['section_id_source']='score_page'
-        # Term metadata from score link / assignment context
         cr['is_current_term']=True
         if link:
             try:
@@ -1728,7 +1813,6 @@ def process_student(st, photo_dir=None):
         if ar.get('end_date'): cr['term_end']=ar.get('end_date')
         if ar.get('store_code') and not cr.get('store_code'): cr['store_code']=ar.get('store_code')
         if ar.get('term_id') and not cr.get('term_id'): cr['term_id']=ar.get('term_id')
-        # Label for UI (T1/T2/S1/Q1/etc.)
         sc=str(cr.get('store_code') or '').strip()
         if sc:
             cr['term_label']=sc.upper()
@@ -1736,7 +1820,6 @@ def process_student(st, photo_dir=None):
             cr['term_label']='Term %s'%cr.get('term_id')
         else:
             cr['term_label']='Current'
-
         if ar.get('error'):
             cr['assignment_error']=ar['error']
             cr['assignment_status']='error'
@@ -1902,13 +1985,19 @@ if __name__=='__main__':sys.exit(main())
 class PowerSchoolClient:
     """Home Assistant adapter around the tested v4 PowerSchool protocol."""
     def __init__(self, base_url=None, username='', password='', term_start=None, term_end=None, photo_dir=None):
-        global BASE_URL, PUBLIC_URL, LOGIN_URL, HOME_URL, LOOKUP_URL, TIMEOUT, DELAY, ACTIVE_TERM_START, ACTIVE_TERM_END, GET_ASSIGNMENTS, opener
+        # Store config only. Module globals (BASE_URL/opener) are bound under
+        # _CLIENT_LOCK at the start of discover/fetch so concurrent HA jobs
+        # cannot interleave two districts mid-request.
         self.base_url=(base_url or BASE_URL).rstrip('/')
         self.username=username
         self.password=password
         self.term_start=term_start or current_school_year_range()[0]
         self.term_end=term_end or current_school_year_range()[1]
         self.photo_dir=photo_dir
+
+    def _bind_session(self):
+        """Apply this client's portal settings to module globals. Caller must hold _CLIENT_LOCK."""
+        global BASE_URL, PUBLIC_URL, LOGIN_URL, HOME_URL, LOOKUP_URL, TIMEOUT, DELAY, ACTIVE_TERM_START, ACTIVE_TERM_END, GET_ASSIGNMENTS, opener, jar
         BASE_URL=self.base_url
         PUBLIC_URL=BASE_URL+'/public/'
         LOGIN_URL=BASE_URL+'/guardian/home.html'
@@ -1919,11 +2008,7 @@ class PowerSchoolClient:
         TIMEOUT=30
         DELAY=float(os.environ.get("POWERSCHOOL_DELAY","0.05"))
         GET_ASSIGNMENTS=True
-        # Do not construct urllib's SSL opener here. Home Assistant calls the
-        # config-flow constructor on the event loop; build_opener() invokes
-        # SSLContext.load_default_certs()/set_default_verify_paths(), which are
-        # blocking operations. The opener is created lazily inside the executor
-        # when discover/fetch methods call request().
+        # Fresh cookie jar per bound session; opener stays lazy (executor only).
         jar=CookieJar()
         opener=None
 
@@ -1940,9 +2025,16 @@ class PowerSchoolClient:
         return students
 
     def discover_students(self):
-        return self._login_and_discover()
+        with _CLIENT_LOCK:
+            self._bind_session()
+            return self._login_and_discover()
 
     def fetch_students(self, selected_ids=None):
+        with _CLIENT_LOCK:
+            self._bind_session()
+            return self._fetch_students_locked(selected_ids)
+
+    def _fetch_students_locked(self, selected_ids=None):
         students=self._login_and_discover()
         selected={str(x) for x in (selected_ids or [])}
         if selected:
