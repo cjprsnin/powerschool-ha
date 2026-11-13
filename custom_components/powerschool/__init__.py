@@ -8,8 +8,12 @@ from urllib.parse import urlparse
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 import voluptuous as vol
+from urllib.error import URLError
+import ssl
 
 from .client import PowerSchoolClient
 from .const import (
@@ -110,16 +114,40 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             host = ""
         return (host.split(".")[0] if host else "") or "District"
 
+    def _is_transient(err: BaseException) -> bool:
+        if isinstance(err, (TimeoutError, ConnectionError, URLError, ssl.SSLError, OSError)):
+            return True
+        msg = str(err).lower()
+        return any(
+            t in msg
+            for t in (
+                "remote end closed",
+                "connection reset",
+                "timed out",
+                "timeout",
+                "temporarily unavailable",
+                "connection aborted",
+            )
+        )
+
+    store = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}")
+
     async def async_update():
         last_err = None
         start = time.monotonic()
         cfg = dict(entry.data)
         districts = _district_list(cfg)
         multi = len(districts) > 1
+
         for attempt in range(3):
-            try:
-                students = {}
-                for dist in districts:
+            students = {}
+            any_success = False
+            auth_failed = None
+            district_errors = []
+
+            for dist in districts:
+                label = _label(dist)
+                try:
                     client = PowerSchoolClient(
                         base_url=normalize_url(dist.get(CONF_URL) or ""),
                         username=dist.get(CONF_USERNAME),
@@ -132,7 +160,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     if not isinstance(result, dict):
                         result = {"students": result}
                     batch = result.get("students") or {}
-                    label = _label(dist)
                     for name, student in batch.items():
                         if not isinstance(student, dict):
                             continue
@@ -141,59 +168,79 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         student["district_url"] = dist.get(CONF_URL)
                         key = f"{label} {name}" if multi else name
                         students[key] = student
-
-                history_store = hass.data.setdefault(DOMAIN, {}).setdefault(
-                    "grade_history", {}
-                )
-
-                for _name, student in students.items():
-                    due_soon, upcoming = collect_upcoming(student)
-                    student["due_soon_assignments"] = due_soon
-                    student["upcoming_assignments"] = upcoming
-                    student["due_soon_count"] = len(due_soon)
-                    student["upcoming_count"] = len(upcoming)
-
-                    for course in student.get("courses") or []:
-                        section_id = str(
-                            course.get("section_id") or course.get("course") or ""
-                        )
-                        key = f"{student.get('student_id')}:{section_id}"
-                        prev_hist = history_store.get(key, [])
-                        percent = course.get("grade_percent")
-                        new_hist, grade_attrs = update_grade_history(
-                            prev_hist, percent
-                        )
-                        history_store[key] = new_hist
-                        course.update(grade_attrs)
-
-                result = {"students": students}
-                duration_ms = int((time.monotonic() - start) * 1000)
-                result["update_duration_ms"] = duration_ms
-                _LOGGER.info(
-                    "PowerSchool refresh finished in %sms (%s student(s))",
-                    duration_ms,
-                    len(students),
-                )
-                return result
-
-            except Exception as err:
-                last_err = err
-                msg = str(err).lower()
-                transient = any(
-                    t in msg
-                    for t in (
-                        "remote end closed",
-                        "connection reset",
-                        "timed out",
-                        "timeout",
-                        "temporarily unavailable",
-                        "connection aborted",
+                    any_success = True
+                except PermissionError as err:
+                    auth_failed = err
+                    district_errors.append(f"{label}: auth {err}")
+                    _LOGGER.error("PowerSchool login failed for %s: %s", label, err)
+                except Exception as err:
+                    district_errors.append(f"{label}: {err}")
+                    _LOGGER.warning(
+                        "PowerSchool district %s failed (keeping other districts): %s",
+                        label,
+                        err,
                     )
-                )
-                if attempt < 2 and transient:
+                    last_err = err
+
+            if auth_failed and not any_success:
+                raise ConfigEntryAuthFailed(str(auth_failed)) from auth_failed
+
+            if not any_success:
+                err = last_err or RuntimeError("all districts failed")
+                if _is_transient(err) and attempt < 2:
                     await asyncio.sleep(1.5 * (attempt + 1))
                     continue
-                raise UpdateFailed(str(err)) from err
+                raise UpdateFailed(
+                    "; ".join(district_errors) or str(err)
+                ) from err
+
+            history_store = hass.data.setdefault(DOMAIN, {}).setdefault(
+                "grade_history", {}
+            )
+
+            for _name, student in students.items():
+                due_soon, upcoming = collect_upcoming(student)
+                student["due_soon_assignments"] = due_soon
+                student["upcoming_assignments"] = upcoming
+                student["due_soon_count"] = len(due_soon)
+                student["upcoming_count"] = len(upcoming)
+
+                for course in student.get("courses") or []:
+                    section_id = str(
+                        course.get("section_id") or course.get("course") or ""
+                    )
+                    key = f"{student.get('student_id')}:{section_id}"
+                    prev_hist = history_store.get(key, [])
+                    percent = course.get("grade_percent")
+                    new_hist, grade_attrs = update_grade_history(
+                        prev_hist, percent
+                    )
+                    history_store[key] = new_hist
+                    course.update(grade_attrs)
+
+            result = {"students": students}
+            duration_ms = int((time.monotonic() - start) * 1000)
+            result["update_duration_ms"] = duration_ms
+            if district_errors:
+                result["district_errors"] = district_errors
+            _LOGGER.info(
+                "PowerSchool refresh finished in %sms (%s student(s)%s)",
+                duration_ms,
+                len(students),
+                f", errors={len(district_errors)}" if district_errors else "",
+            )
+            try:
+                await store.async_save(
+                    {
+                        "data": result,
+                        "grade_history": history_store,
+                        "saved_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                )
+            except Exception as save_err:
+                _LOGGER.debug("PowerSchool store save failed: %s", save_err)
+            return result
+
         raise UpdateFailed(str(last_err) if last_err else "update failed")
 
     interval = max(
@@ -208,7 +255,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-    coordinator.async_set_updated_data({"students": {}})
+
+    # Restore last successful scrape so entities exist before first network poll
+    try:
+        cached = await store.async_load()
+    except Exception as err:
+        _LOGGER.debug("PowerSchool store load failed: %s", err)
+        cached = None
+    if isinstance(cached, dict) and isinstance(cached.get("data"), dict):
+        if isinstance(cached.get("grade_history"), dict):
+            hass.data.setdefault(DOMAIN, {})["grade_history"] = cached["grade_history"]
+        coordinator.async_set_updated_data(cached["data"])
+        _LOGGER.info(
+            "PowerSchool restored cached data (%s student(s))",
+            len((cached["data"].get("students") or {})),
+        )
+    else:
+        coordinator.async_set_updated_data({"students": {}})
 
     async def _bg_first_refresh() -> None:
         try:
