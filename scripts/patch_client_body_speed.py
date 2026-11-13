@@ -77,4 +77,3 @@ p.write_text(text, encoding="utf-8")
 print("patched", p)
 print("  DELAY 0.05:", "POWERSCHOOL_DELAY','0.05" in text or 'POWERSCHOOL_DELAY","0.05' in text)
 print("  photo miss:", "miss_path" in text)
-"""
