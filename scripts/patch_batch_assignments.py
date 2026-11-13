@@ -156,7 +156,6 @@ new_loop = r'''    # Phase 1: build course shells + discover section ids without
             result['courses'].append(cr)
             continue
         else:
-            # Prefer batch if this section was included; only hit score page when batch missed it
             if sec and sec in by_section:
                 ar=by_section[sec]
                 cr['assignment_discovery']='batch_section_lookup'
@@ -220,4 +219,3 @@ print("patched", p)
 print("  batch fn:", "def fetch_assignments_for_sections" in cb)
 print("  batch discovery:", "batch_section_lookup" in cb)
 print("  DELAY 0.05:", "POWERSCHOOL_DELAY','0.05" in cb or 'POWERSCHOOL_DELAY","0.05' in cb)
-"""
