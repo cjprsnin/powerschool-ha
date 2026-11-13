@@ -100,6 +100,21 @@ class _StudentEntity(CoordinatorEntity):
 
 
 class PowerSchoolSummarySensor(_StudentEntity, SensorEntity):
+    # Large list/blob attrs: keep on entity state for cards, skip recorder history
+    _unrecorded_attributes = frozenset({
+        "assignments",
+        "by_course",
+        "attendance_headers",
+        "attendance_days",
+        "attendance_codes",
+        "schedule",
+        "bulletin",
+        "class_roster",
+        "grade_history",
+        "photo_url",
+        "photo_source_url",
+    })
+
     def __init__(self, coordinator, student_name, student, key, field, label, unit, diagnostic):
         super().__init__(coordinator, student_name, student, key)
         self._field = field
@@ -194,6 +209,15 @@ class PowerSchoolDiagnosticSensor(_StudentEntity, SensorEntity):
 
 
 class PowerSchoolCourseSensor(_StudentEntity, SensorEntity):
+    # Assignment payloads often exceed recorder 16KB attr limit (e.g. Pre-Algebra)
+    _unrecorded_attributes = frozenset({
+        "assignments",
+        "missing_homework",
+        "grade_history_points",
+        "term_grades",
+        "grade_scale",
+    })
+
     def __init__(self, coordinator, student_name, student, key, course):
         super().__init__(coordinator, student_name, student, key)
         self._course_name = course.get("course", "Course")
