@@ -12,7 +12,7 @@ LOGIN_URL=BASE_URL+'/guardian/home.html'
 HOME_URL=LOGIN_URL
 LOOKUP_URL=os.environ.get('POWERSCHOOL_ASSIGNMENT_LOOKUP_URL','').strip()
 TIMEOUT=int(os.environ.get('POWERSCHOOL_TIMEOUT','30'))
-DELAY=float(os.environ.get('POWERSCHOOL_DELAY','.25'))
+DELAY=float(os.environ.get('POWERSCHOOL_DELAY','0.05'))
 DEBUG=os.environ.get('POWERSCHOOL_DEBUG','').lower() in ('1','true','yes','on')
 GET_ASSIGNMENTS=os.environ.get('POWERSCHOOL_GET_ASSIGNMENTS','1').lower() not in ('0','false','no','off')
 UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/153.0 Safari/537.36'
@@ -1892,7 +1892,7 @@ class PowerSchoolClient:
         ACTIVE_TERM_START=self.term_start
         ACTIVE_TERM_END=self.term_end
         TIMEOUT=30
-        DELAY=0.25
+        DELAY=float(os.environ.get("POWERSCHOOL_DELAY","0.05"))
         GET_ASSIGNMENTS=True
         # Do not construct urllib's SSL opener here. Home Assistant calls the
         # config-flow constructor on the event loop; build_opener() invokes
