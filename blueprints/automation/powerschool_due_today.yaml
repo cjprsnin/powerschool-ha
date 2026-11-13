@@ -1,8 +1,8 @@
 blueprint:
-  name: PowerSchool due today
+  name: PowerSchool due tomorrow (legacy path)
   description: >
-    Morning digest of assignments due today from the upcoming-assignments
-    sensor (ungraded only). Runs at a configurable time.
+    Prefer powerschool_due_tomorrow.yaml. This file remains for older
+    installs; default time is 17:00 and filters days_until_due == 1.
   domain: automation
   input:
     upcoming_sensor:
@@ -17,7 +17,7 @@ blueprint:
         text:
     time:
       name: Time to check
-      default: "07:00:00"
+      default: "17:00:00"
       selector:
         time:
 
@@ -29,22 +29,19 @@ condition:
   - condition: template
     value_template: >
       {% set items = state_attr(upcoming_sensor, 'assignments') or [] %}
-      {% set today = items | selectattr('days_until_due', 'equalto', 0) | list %}
-      {{ today | count > 0 }}
+      {% set soon = items | selectattr('days_until_due', 'equalto', 1) | list %}
+      {{ soon | count > 0 }}
 
 action:
   - variables:
       upcoming_sensor: !input upcoming_sensor
-      items: >
-        {{ state_attr(upcoming_sensor, 'assignments') or [] }}
-      today: >
-        {{ items | selectattr('days_until_due', 'equalto', 0) | list }}
+      items: "{{ state_attr(upcoming_sensor, 'assignments') or [] }}"
+      soon: "{{ items | selectattr('days_until_due', 'equalto', 1) | list }}"
   - service: !input notify_device
     data:
-      title: PowerSchool — due today
+      title: PowerSchool — due tomorrow
       message: >
-        {{ state_attr(upcoming_sensor, 'friendly_name') }}:
-        {% for a in today %}
+        {% for a in soon %}
         • {{ a.name }} ({{ a.course }})
         {% endfor %}
 mode: single

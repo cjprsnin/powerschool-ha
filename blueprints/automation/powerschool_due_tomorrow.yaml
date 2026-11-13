@@ -1,0 +1,52 @@
+blueprint:
+  name: PowerSchool due tomorrow
+  description: >
+    Afternoon digest of ungraded assignments due tomorrow from the
+    upcoming-assignments sensor. Default time 17:00 (after school).
+  domain: automation
+  input:
+    upcoming_sensor:
+      name: Upcoming assignments sensor
+      selector:
+        entity:
+          integration: powerschool
+          domain: sensor
+    notify_device:
+      name: Notify service (e.g. notify.mobile_app_phone)
+      selector:
+        text:
+    time:
+      name: Time to check
+      default: "17:00:00"
+      selector:
+        time:
+
+trigger:
+  - platform: time
+    at: !input time
+
+condition:
+  - condition: template
+    value_template: >
+      {% set items = state_attr(upcoming_sensor, 'assignments') or [] %}
+      {% set soon = items | selectattr('days_until_due', 'equalto', 1) | list %}
+      {{ soon | count > 0 }}
+
+action:
+  - variables:
+      upcoming_sensor: !input upcoming_sensor
+      items: "{{ state_attr(upcoming_sensor, 'assignments') or [] }}"
+      soon: "{{ items | selectattr('days_until_due', 'equalto', 1) | list }}"
+      student: >
+        {{ state_attr(upcoming_sensor, 'student')
+           or (state_attr(upcoming_sensor, 'friendly_name') or '')
+                | replace('PowerSchool ', '')
+                | replace(' Upcoming Assignments', '') }}
+  - service: !input notify_device
+    data:
+      title: "PowerSchool — {{ student }} due tomorrow"
+      message: >
+        {% for a in soon %}
+        • {{ a.name }}{% if a.course %} ({{ a.course }}){% endif %}
+        {% endfor %}
+mode: single

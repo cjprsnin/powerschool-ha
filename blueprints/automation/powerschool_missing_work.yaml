@@ -1,6 +1,8 @@
 blueprint:
   name: PowerSchool missing / late work alert
-  description: Notify when a student has new missing or late assignments.
+  description: >
+    Notify when a student's missing or late assignment count increases.
+    Optional quiet hours skip overnight alerts.
   domain: automation
   input:
     missing_sensor:
@@ -19,6 +21,16 @@ blueprint:
       name: Notify service (e.g. notify.mobile_app_phone)
       selector:
         text:
+    quiet_start:
+      name: Quiet hours start (optional)
+      default: "22:00:00"
+      selector:
+        time:
+    quiet_end:
+      name: Quiet hours end (optional)
+      default: "07:00:00"
+      selector:
+        time:
 
 trigger:
   - platform: state
@@ -29,16 +41,29 @@ trigger:
 condition:
   - condition: template
     value_template: >
-      {% set m = states(trigger.entity_id) | int(0) %}
+      {% set n = states(trigger.entity_id) | int(0) %}
       {% set prev = trigger.from_state.state | int(0) if trigger.from_state else 0 %}
-      {{ m > prev }}
+      {{ n > prev }}
+  - condition: not
+    conditions:
+      - condition: time
+        after: !input quiet_start
+        before: !input quiet_end
 
 action:
+  - variables:
+      kind: >
+        {{ 'missing' if 'missing' in trigger.entity_id else 'late' }}
+      student: >
+        {{ state_attr(trigger.entity_id, 'student')
+           or (state_attr(trigger.entity_id, 'friendly_name') or '')
+                | replace('PowerSchool ', '')
+                | replace(' Missing Assignments', '')
+                | replace(' Late Assignments', '') }}
   - service: !input notify_device
     data:
-      title: PowerSchool
+      title: "PowerSchool — {{ student }}"
       message: >
-        {{ state_attr(trigger.entity_id, 'friendly_name') }} is now
-        {{ states(trigger.entity_id) }}
+        {{ student }}: {{ states(trigger.entity_id) }} {{ kind }}
         (was {{ trigger.from_state.state if trigger.from_state else '?' }}).
 mode: single

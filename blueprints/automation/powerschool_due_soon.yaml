@@ -1,8 +1,9 @@
 blueprint:
   name: PowerSchool due-soon assignments
   description: >
-    Notify when a student has assignments due within the due-soon window
-    (default 2 days). Fires when the due-soon count increases.
+    Notify when a student has more assignments in the due-soon window
+    (default ~2 days). Fires when the due-soon count increases.
+    Optional quiet hours skip overnight alerts.
   domain: automation
   input:
     due_soon_sensor:
@@ -15,6 +16,16 @@ blueprint:
       name: Notify service (e.g. notify.mobile_app_phone)
       selector:
         text:
+    quiet_start:
+      name: Quiet hours start (optional)
+      default: "22:00:00"
+      selector:
+        time:
+    quiet_end:
+      name: Quiet hours end (optional)
+      default: "07:00:00"
+      selector:
+        time:
 
 trigger:
   - platform: state
@@ -26,16 +37,26 @@ condition:
       {% set n = states(trigger.entity_id) | int(0) %}
       {% set prev = trigger.from_state.state | int(0) if trigger.from_state else 0 %}
       {{ n > prev and n > 0 }}
+  - condition: not
+    conditions:
+      - condition: time
+        after: !input quiet_start
+        before: !input quiet_end
 
 action:
   - variables:
       items: "{{ state_attr(trigger.entity_id, 'assignments') or [] }}"
+      student: >
+        {{ state_attr(trigger.entity_id, 'student')
+           or (state_attr(trigger.entity_id, 'friendly_name') or '')
+                | replace('PowerSchool ', '')
+                | replace(' Due Soon Assignments', '') }}
   - service: !input notify_device
     data:
-      title: PowerSchool — due soon
+      title: "PowerSchool — {{ student }} due soon"
       message: >
-        {{ state_attr(trigger.entity_id, 'friendly_name') }}: {{ states(trigger.entity_id) }} due soon.
+        {{ states(trigger.entity_id) }} due soon.
         {% for a in items[:5] %}
-        • {{ a.name }} ({{ a.course }}) — due {{ a.due }}
+        • {{ a.name }}{% if a.course %} ({{ a.course }}){% endif %} — {{ a.due }}
         {% endfor %}
 mode: single
