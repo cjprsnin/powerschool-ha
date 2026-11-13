@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="380" viewBox="0 0 400 380">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#141418"/>
+      <stop offset="100%" stop-color="#0c0c0e"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="380" fill="#1a1a1e"/>
+  <rect x="24" y="24" width="352" height="332" rx="20" fill="url(#bg)" stroke="rgba(200,204,212,0.12)"/>
+  <text x="48" y="64" fill="#ecece8" font-family="system-ui" font-size="26" font-weight="500">Trent</text>
+  <g font-family="system-ui" text-anchor="middle">
+    <text x="80" y="92" fill="#8a8e96" font-size="9" letter-spacing="1">AVERAGE</text>
+    <text x="80" y="114" fill="#c4a574" font-size="16" font-weight="600">88.1%</text>
+    <text x="160" y="92" fill="#8a8e96" font-size="9" letter-spacing="1">CLASSES</text>
+    <text x="160" y="114" fill="#ecece8" font-size="16" font-weight="600">10</text>
+    <text x="250" y="92" fill="#8a8e96" font-size="9" letter-spacing="1">MISS / LATE</text>
+    <text x="250" y="114" fill="#ecece8" font-size="16" font-weight="600">6/15</text>
+    <text x="330" y="92" fill="#8a8e96" font-size="9" letter-spacing="1">ATTEND</text>
+    <text x="330" y="114" fill="#ecece8" font-size="16" font-weight="600">2a 1t</text>
+  </g>
+  <line x1="40" y1="128" x2="360" y2="128" stroke="rgba(200,204,212,0.1)"/>
+  <text x="48" y="150" fill="#8a8e96" font-family="system-ui" font-size="11" letter-spacing="1">DUE SOON</text>
+  <circle cx="330" cy="146" r="11" fill="rgba(196,165,116,0.25)"/>
+  <text x="330" y="150" text-anchor="middle" fill="#c4a574" font-family="system-ui" font-size="11" font-weight="600">2</text>
+  <rect x="40" y="160" width="155" height="70" rx="12" fill="rgba(255,255,255,0.04)" stroke="rgba(200,204,212,0.12)"/>
+  <text x="52" y="182" fill="#c4a574" font-family="system-ui" font-size="12" font-weight="600">Pre-Algebra</text>
+  <text x="52" y="202" fill="#ecece8" font-family="system-ui" font-size="13">Worksheet 4.2</text>
+  <text x="52" y="220" fill="#8a8e96" font-family="system-ui" font-size="11">Tomorrow · —</text>
+  <rect x="205" y="160" width="155" height="70" rx="12" fill="rgba(255,255,255,0.04)" stroke="rgba(200,204,212,0.12)"/>
+  <text x="217" y="182" fill="#c4a574" font-family="system-ui" font-size="12" font-weight="600">Science 7</text>
+  <text x="217" y="202" fill="#ecece8" font-family="system-ui" font-size="13">Lab report</text>
+  <text x="217" y="220" fill="#8a8e96" font-family="system-ui" font-size="11">Thu · Ungraded</text>
+  <text x="48" y="258" fill="#8a8e96" font-family="system-ui" font-size="11" letter-spacing="1">SUBJECT GRADES</text>
+  <rect x="40" y="270" width="155" height="72" rx="14" fill="#3d5a80"/>
+  <text x="52" y="292" fill="rgba(255,255,255,0.85)" font-family="system-ui" font-size="10" font-weight="600">BAND</text>
+  <text x="52" y="322" fill="#fff" font-family="system-ui" font-size="26" font-weight="600">A</text>
+  <rect x="205" y="270" width="155" height="72" rx="14" fill="#2d6a4f"/>
+  <text x="217" y="292" fill="rgba(255,255,255,0.85)" font-family="system-ui" font-size="10" font-weight="600">ELA</text>
+  <text x="217" y="322" fill="#fff" font-family="system-ui" font-size="26" font-weight="600">B+</text>
+</svg>

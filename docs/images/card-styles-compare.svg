@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="280" viewBox="0 0 960 280">
+  <rect width="960" height="280" fill="#121214"/>
+  <text x="24" y="36" fill="#8a8e96" font-family="system-ui" font-size="13" letter-spacing="2">CARD STYLES</text>
+  <rect x="24" y="56" width="220" height="200" rx="16" fill="#0c0c0e" stroke="rgba(200,204,212,0.12)"/>
+  <text x="40" y="84" fill="#c4a574" font-family="system-ui" font-size="12" font-weight="600">V1 LIST</text>
+  <text x="40" y="112" fill="#ecece8" font-family="system-ui" font-size="18">Trent</text>
+  <rect x="40" y="128" width="188" height="28" rx="6" fill="rgba(255,255,255,0.05)"/>
+  <text x="52" y="147" fill="#ecece8" font-family="system-ui" font-size="12">Pre-Algebra · B</text>
+  <rect x="40" y="164" width="188" height="28" rx="6" fill="rgba(255,255,255,0.05)"/>
+  <text x="52" y="183" fill="#ecece8" font-family="system-ui" font-size="12">Science · C</text>
+  <rect x="40" y="200" width="188" height="28" rx="6" fill="rgba(255,255,255,0.05)"/>
+  <text x="52" y="219" fill="#ecece8" font-family="system-ui" font-size="12">ELA · B+</text>
+  <rect x="260" y="56" width="220" height="200" rx="16" fill="#0c0c0e" stroke="rgba(200,204,212,0.12)"/>
+  <text x="276" y="84" fill="#c4a574" font-family="system-ui" font-size="12" font-weight="600">V2 TILES</text>
+  <rect x="276" y="100" width="88" height="56" rx="10" fill="#3d5a80"/><text x="288" y="136" fill="#fff" font-family="system-ui" font-size="20" font-weight="600">A</text>
+  <rect x="376" y="100" width="88" height="56" rx="10" fill="#2d6a4f"/><text x="388" y="136" fill="#fff" font-family="system-ui" font-size="20" font-weight="600">B+</text>
+  <rect x="276" y="168" width="88" height="56" rx="10" fill="#5c4d7a"/><text x="288" y="204" fill="#fff" font-family="system-ui" font-size="20" font-weight="600">C</text>
+  <rect x="376" y="168" width="88" height="56" rx="10" fill="#8a6a3d"/><text x="388" y="204" fill="#fff" font-family="system-ui" font-size="20" font-weight="600">B</text>
+  <rect x="496" y="56" width="220" height="200" rx="16" fill="#0c0c0e" stroke="rgba(200,204,212,0.12)"/>
+  <text x="512" y="84" fill="#c4a574" font-family="system-ui" font-size="12" font-weight="600">V3 OVERVIEW</text>
+  <rect x="512" y="100" width="56" height="40" rx="8" fill="#3d5a80"/><text x="524" y="126" fill="#fff" font-family="system-ui" font-size="14" font-weight="600">A</text>
+  <rect x="576" y="100" width="56" height="40" rx="8" fill="#2d6a4f"/><text x="588" y="126" fill="#fff" font-family="system-ui" font-size="14" font-weight="600">B+</text>
+  <rect x="640" y="100" width="56" height="40" rx="8" fill="#5c4d7a"/><text x="652" y="126" fill="#fff" font-family="system-ui" font-size="14" font-weight="600">C</text>
+  <rect x="512" y="152" width="188" height="72" rx="10" fill="rgba(255,255,255,0.04)" stroke="rgba(200,204,212,0.1)"/>
+  <text x="524" y="180" fill="#c4a574" font-family="system-ui" font-size="11">MISSING / LATE</text>
+  <text x="524" y="204" fill="#ecece8" font-family="system-ui" font-size="13">6 · 15</text>
+  <rect x="732" y="56" width="204" height="200" rx="16" fill="#0c0c0e" stroke="rgba(200,204,212,0.12)"/>
+  <text x="748" y="84" fill="#c4a574" font-family="system-ui" font-size="12" font-weight="600">V4 DUE SOON</text>
+  <text x="748" y="110" fill="#ecece8" font-family="system-ui" font-size="11">88% · 10 · 6/15</text>
+  <rect x="748" y="124" width="172" height="48" rx="10" fill="rgba(255,255,255,0.04)" stroke="rgba(200,204,212,0.12)"/>
+  <text x="760" y="144" fill="#c4a574" font-family="system-ui" font-size="11">Pre-Alg · Tomorrow</text>
+  <text x="760" y="162" fill="#8a8e96" font-family="system-ui" font-size="11">Worksheet 4.2 · —</text>
+  <rect x="748" y="184" width="80" height="48" rx="10" fill="#3d5a80"/><text x="760" y="214" fill="#fff" font-family="system-ui" font-size="16" font-weight="600">A</text>
+  <rect x="840" y="184" width="80" height="48" rx="10" fill="#2d6a4f"/><text x="852" y="214" fill="#fff" font-family="system-ui" font-size="16" font-weight="600">B+</text>
+</svg>

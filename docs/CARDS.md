@@ -2,6 +2,8 @@
 
 Custom card variants ship in [`www/`](../www/).
 
+![Card styles comparison](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/docs/images/card-styles-compare.svg)
+
 | Card | Type | Style | Best for |
 |------|------|--------|----------|
 | **V1** | `custom:powerschool-card` | Expandable course list | Desktop detail, term scope |
@@ -26,6 +28,8 @@ Pin a commit SHA in the URL if you need a fixed revision (cache-bust after updat
 
 ## V4 — Due soon + grades (recommended)
 
+![V4 card](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/docs/images/card-v4.svg)
+
 Dark mockup-style card:
 
 - **Stats bar:** Average · Classes (tap → roster) · Missing/Late (tap → list) · Attendance (tap → absences/tardies)
@@ -44,13 +48,17 @@ student: Teagan
 show_empty: true
 ```
 
-School V2 example: [`examples/school-v2-dashboard.yaml`](../examples/school-v2-dashboard.yaml)
+### School V2 dashboard example
+
+![School V2 with V4 cards](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/docs/images/dashboard-v4.svg)
+
+YAML: [`examples/school-v2-dashboard.yaml`](../examples/school-v2-dashboard.yaml)
 
 ---
 
 ## V1 — Expandable list
 
-![V1 card](https://cdn.jsdelivr.net/gh/cjprsnin/powerschool-ha@main/docs/images/card-v1.svg)
+![V1 card](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/docs/images/card-v1.svg)
 
 - Header with student, refresh, average / missing / late
 - Course rows; expand for assignments
@@ -65,7 +73,7 @@ recent: 10
 
 ## V2 — App tiles
 
-![V2 card](https://cdn.jsdelivr.net/gh/cjprsnin/powerschool-ha@main/docs/images/card-v2.svg)
+![V2 card](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/docs/images/card-v2.svg)
 
 - Color-coded grade tiles
 - Tap tile → course hero + assignment list
@@ -78,7 +86,7 @@ student: Trent
 
 ## V3 — Class overview
 
-![V3 card](https://cdn.jsdelivr.net/gh/cjprsnin/powerschool-ha@main/docs/images/card-v3.svg)
+![V3 card](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/docs/images/card-v3.svg)
 
 - Denser grade grid + missing/late panel
 

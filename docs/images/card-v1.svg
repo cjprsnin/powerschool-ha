@@ -1,47 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="420" height="520" viewBox="0 0 420 520">
-  <rect width="420" height="520" fill="#1c1c1e"/>
-  <rect x="16" y="16" width="388" height="488" rx="16" fill="#2c2c2e"/>
-  <circle cx="52" cy="56" r="20" fill="#3a3a3c"/>
-  <text x="52" y="61" text-anchor="middle" fill="#8e8e93" font-family="system-ui,sans-serif" font-size="14" font-weight="600">T</text>
-  <text x="82" y="52" fill="#f5f5f7" font-family="system-ui,sans-serif" font-size="18" font-weight="600">Trent</text>
-  <text x="82" y="70" fill="#8e8e93" font-family="system-ui,sans-serif" font-size="12">Current term - 10 classes</text>
-  <circle cx="372" cy="56" r="16" fill="#3a3a3c"/>
-  <text x="372" y="61" text-anchor="middle" fill="#0a84ff" font-family="system-ui,sans-serif" font-size="14">R</text>
-  <rect x="32" y="92" width="72" height="52" rx="10" fill="#3a3a3c"/>
-  <text x="68" y="116" text-anchor="middle" fill="#30d158" font-family="system-ui,sans-serif" font-size="18" font-weight="700">87%</text>
-  <text x="68" y="132" text-anchor="middle" fill="#8e8e93" font-family="system-ui,sans-serif" font-size="9">AVERAGE</text>
-  <rect x="112" y="92" width="72" height="52" rx="10" fill="#3a3a3c"/>
-  <text x="148" y="116" text-anchor="middle" fill="#f5f5f7" font-family="system-ui,sans-serif" font-size="18" font-weight="700">10</text>
-  <text x="148" y="132" text-anchor="middle" fill="#8e8e93" font-family="system-ui,sans-serif" font-size="9">CLASSES</text>
-  <rect x="192" y="92" width="72" height="52" rx="10" fill="#3a3a3c"/>
-  <text x="228" y="116" text-anchor="middle" fill="#ff453a" font-family="system-ui,sans-serif" font-size="18" font-weight="700">4</text>
-  <text x="228" y="132" text-anchor="middle" fill="#8e8e93" font-family="system-ui,sans-serif" font-size="9">MISSING</text>
-  <rect x="272" y="92" width="72" height="52" rx="10" fill="#3a3a3c"/>
-  <text x="308" y="116" text-anchor="middle" fill="#ff9f0a" font-family="system-ui,sans-serif" font-size="18" font-weight="700">8</text>
-  <text x="308" y="132" text-anchor="middle" fill="#8e8e93" font-family="system-ui,sans-serif" font-size="9">LATE</text>
-  <rect x="32" y="160" width="356" height="44" rx="10" fill="#3a3a3c"/>
-  <text x="48" y="187" fill="#8e8e93" font-family="system-ui,sans-serif" font-size="14">></text>
-  <text x="68" y="187" fill="#f5f5f7" font-family="system-ui,sans-serif" font-size="14" font-weight="500">English Language Arts 7</text>
-  <text x="360" y="187" text-anchor="end" fill="#30d158" font-family="system-ui,sans-serif" font-size="14" font-weight="700">90% A-</text>
-  <rect x="32" y="212" width="356" height="44" rx="10" fill="#3a3a3c"/>
-  <text x="48" y="239" fill="#8e8e93" font-family="system-ui,sans-serif" font-size="14">></text>
-  <text x="68" y="239" fill="#f5f5f7" font-family="system-ui,sans-serif" font-size="14" font-weight="500">Foreign Language 7</text>
-  <text x="360" y="239" text-anchor="end" fill="#64d2ff" font-family="system-ui,sans-serif" font-size="14" font-weight="700">85% B</text>
-  <rect x="32" y="264" width="356" height="120" rx="10" fill="#3a3a3c"/>
-  <text x="48" y="291" fill="#0a84ff" font-family="system-ui,sans-serif" font-size="14">v</text>
-  <text x="68" y="291" fill="#f5f5f7" font-family="system-ui,sans-serif" font-size="14" font-weight="500">Global Studies 7</text>
-  <rect x="250" y="278" width="36" height="18" rx="9" fill="#5c2b2b"/>
-  <text x="268" y="291" text-anchor="middle" fill="#ff453a" font-family="system-ui,sans-serif" font-size="10">2 miss</text>
-  <text x="360" y="291" text-anchor="end" fill="#ff9f0a" font-family="system-ui,sans-serif" font-size="14" font-weight="700">77% C+</text>
-  <text x="68" y="318" fill="#8e8e93" font-family="system-ui,sans-serif" font-size="11">Recent work</text>
-  <text x="68" y="340" fill="#f5f5f7" font-family="system-ui,sans-serif" font-size="12">Chapter 4 Quiz</text>
-  <text x="360" y="340" text-anchor="end" fill="#30d158" font-family="system-ui,sans-serif" font-size="12">18/20</text>
-  <text x="68" y="362" fill="#f5f5f7" font-family="system-ui,sans-serif" font-size="12">Map Project</text>
-  <text x="360" y="362" text-anchor="end" fill="#ff453a" font-family="system-ui,sans-serif" font-size="12">Missing</text>
-  <rect x="32" y="392" width="356" height="44" rx="10" fill="#3a3a3c"/>
-  <text x="48" y="419" fill="#8e8e93" font-family="system-ui,sans-serif" font-size="14">></text>
-  <text x="68" y="419" fill="#f5f5f7" font-family="system-ui,sans-serif" font-size="14" font-weight="500">Physical Education/Health 7</text>
-  <text x="360" y="419" text-anchor="end" fill="#30d158" font-family="system-ui,sans-serif" font-size="14" font-weight="700">100% A</text>
-  <text x="210" y="470" text-anchor="middle" fill="#636366" font-family="system-ui,sans-serif" font-size="11">Tap a class to expand - current term</text>
-  <text x="210" y="500" text-anchor="middle" fill="#636366" font-family="system-ui,sans-serif" font-size="12" font-weight="600">V1 - powerschool-card (expandable)</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="380" viewBox="0 0 400 380">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#141418"/>
+      <stop offset="100%" stop-color="#0c0c0e"/>
+    </linearGradient>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <rect width="400" height="380" fill="#1a1a1e"/>
+  <rect x="24" y="24" width="352" height="332" rx="20" fill="url(#bg)" stroke="rgba(200,204,212,0.12)" filter="url(#sh)"/>
+  <text x="48" y="64" fill="#ecece8" font-family="system-ui,Segoe UI,sans-serif" font-size="26" font-weight="500">Trent</text>
+  <text x="48" y="92" fill="#8a8e96" font-family="system-ui" font-size="12">88.1% avg · 6 missing · 15 late</text>
+  <rect x="40" y="110" width="320" height="44" rx="10" fill="rgba(255,255,255,0.04)" stroke="rgba(200,204,212,0.1)"/>
+  <text x="56" y="137" fill="#ecece8" font-family="system-ui" font-size="14" font-weight="600">Pre-Algebra</text>
+  <text x="300" y="137" fill="#c4a574" font-family="system-ui" font-size="16" font-weight="600">B</text>
+  <rect x="40" y="162" width="320" height="44" rx="10" fill="rgba(255,255,255,0.04)" stroke="rgba(200,204,212,0.1)"/>
+  <text x="56" y="189" fill="#ecece8" font-family="system-ui" font-size="14" font-weight="600">Science 7</text>
+  <text x="300" y="189" fill="#c8ccd4" font-family="system-ui" font-size="16" font-weight="600">C</text>
+  <rect x="40" y="214" width="320" height="44" rx="10" fill="rgba(255,255,255,0.04)" stroke="rgba(200,204,212,0.1)"/>
+  <text x="56" y="241" fill="#ecece8" font-family="system-ui" font-size="14" font-weight="600">English Language Arts 7</text>
+  <text x="290" y="241" fill="#c4a574" font-family="system-ui" font-size="16" font-weight="600">B+</text>
+  <rect x="40" y="266" width="320" height="70" rx="10" fill="rgba(61,90,128,0.25)" stroke="rgba(200,204,212,0.12)"/>
+  <text x="56" y="290" fill="#c4a574" font-family="system-ui" font-size="12">ASSIGNMENTS</text>
+  <text x="56" y="312" fill="#ecece8" font-family="system-ui" font-size="13">Warm Ups Nov. 9th-11th · 100%</text>
 </svg>
