@@ -10,6 +10,8 @@ Pulls grades, assignments, missing/late work, attendance, schedule, bulletin, cl
 
 **Version:** 1.5.0
 
+![Card styles](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/docs/images/card-styles-compare.svg)
+
 ## Features
 
 - Config flow setup (portal URL, credentials, students)
@@ -79,6 +81,8 @@ data: {}
 Forces an immediate poll of configured PowerSchool entries. No entity target required.
 
 ## Lovelace cards
+
+![School V2 · V4](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/docs/images/dashboard-v4.svg)
 
 See **[docs/CARDS.md](docs/CARDS.md)** for previews and options.
 
