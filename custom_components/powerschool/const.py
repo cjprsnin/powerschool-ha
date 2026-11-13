@@ -7,7 +7,7 @@ CONF_STUDENTS = "students"
 CONF_UPDATE_INTERVAL = "update_interval"
 CONF_DISTRICTS = "districts"  # list of {name,url,username,password,students}
 DEFAULT_URL = ""
-DEFAULT_UPDATE_INTERVAL = 15
+DEFAULT_UPDATE_INTERVAL = 30
 PLATFORMS = ["sensor", "select", "binary_sensor"]
 
 SERVICE_REFRESH = "refresh"
