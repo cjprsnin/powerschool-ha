@@ -4,67 +4,68 @@
   <img src="https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/docs/images/logo.svg" alt="PowerSchool Grades" width="160" height="160">
 </p>
 
-Unofficial Home Assistant integration for the PowerSchool Parent Portal.
+Unofficial Home Assistant integration for the **PowerSchool Parent Portal**.
 
-Pulls grades, assignment counts, missing/late work, course details, and **student profile photos** for selected students.
+Pulls grades, assignments, missing/late work, attendance, schedule, bulletin, class roster, and optional **student photos** for selected students.
 
-**Version:** 1.4.0
+**Version:** 1.5.0
 
 ## Features
 
-- Config flow setup (URL, credentials, student selection)
-- Per-student summary sensors (average, missing, late, …)
+- Config flow setup (portal URL, credentials, students)
+- **Multi-district in one entry** — add another portal from Configure (e.g. middle school + future high school)
+- Per-student summary sensors (average, missing, late, due soon, absences, …)
 - Per-course grade sensors with full assignment attributes
 - Binary sensors: has missing work / has late work
-- Student profile photos as `entity_picture` (from the portal)
-- Diagnostic status sensor (identity + assignment API health)
+- Attendance, schedule periods, bulletin, class roster sensors
+- Student profile photos as `entity_picture` (when the portal exposes them)
 - Service: `powerschool.refresh`
-- Custom Lovelace cards (V1 expandable, V2 app tiles, V3 class overview)
-- Example Lovelace cards + notification blueprint
+- Custom Lovelace cards **V1–V4** (V4: due-soon strip, roster/attendance drills)
 
 ## Installation
 
-### HACS (recommended)
+### HACS / Marketplace (recommended)
 
-1. HACS → Integrations → ⋮ → **Custom repositories**
-2. Add `https://github.com/cjprsnin/powerschool-ha` as **Integration**
-3. Install **PowerSchool Grades** → restart Home Assistant
-4. Settings → Devices & services → **Add integration** → **PowerSchool Grades**
-5. Enter PowerSchool URL (e.g. `https://powerschool.yourdistrict.org`), username, password
-6. Select students to monitor
+1. Add custom repository `https://github.com/cjprsnin/powerschool-ha` as **Integration** (if not already listed)
+2. Install **PowerSchool Grades** → restart Home Assistant when prompted
+3. **Settings → Devices & services → Add integration → PowerSchool Grades**
+4. Enter portal URL (e.g. `https://powerschool.yourdistrict.org`), username, password
+5. Optional **district name** (shown in titles when you have more than one)
+6. Select students → optionally **Add another district**
 
 ### Manual
 
 Copy `custom_components/powerschool` into `/config/custom_components/`, restart, then add the integration.
 
-## Profile pictures
+## Configuration
 
-When the parent portal exposes a student photo, the integration:
+| Field | Description |
+|-------|-------------|
+| URL | PowerSchool parent portal base URL |
+| Username / Password | Guardian login |
+| Name | Optional label (e.g. `D41`, `High School`) |
+| Students | Which children to track |
+| Update interval | 5–1440 minutes (default 15) |
 
-1. Downloads it into `/config/www/powerschool/`
-2. Serves it as `/local/powerschool/<student_id>.jpg` (or `.png`/`.webp`)
-3. Sets it as `entity_picture` on summary sensors, binary sensors, and the student select
+**Options** (integration → Configure):
 
-**In Lovelace**, photos show automatically on entities cards and glance cards. For mushroom/template cards use:
-
-```yaml
-picture: "{{ state_attr('sensor.powerschool_STUDENT_NAME_grade_average', 'photo_url') }}"
-```
-
-If no photo appears, the district portal likely does not expose one on the guardian home page (or blocks the image request). Check `photo_url` / `photo_source_url` on the grade average sensor attributes.
+- Change poll interval
+- **Add another district** (same entry, multiple portals)
 
 ## Entities (per student)
 
+Entity IDs may be prefixed by area/device (e.g. `sensor.trent_s_bedroom_…`). Patterns:
+
 | Pattern | Description |
 |---------|-------------|
-| `sensor.powerschool_<student>_grade_average` | Average of course % grades |
-| `sensor.powerschool_<student>_missing_assignments` | Missing count |
-| `sensor.powerschool_<student>_late_assignments` | Late count |
-| `sensor.powerschool_<student>_status` | Diagnostic: identity / API status |
-| `sensor.powerschool_<student>_<course>` | Course grade |
-| `binary_sensor.powerschool_<student>_has_missing_work` | Problem sensor |
-| `binary_sensor.powerschool_<student>_has_late_work` | Problem sensor |
-| `select.powerschool_student` | Active student picker |
+| `…_grade_average` | Average of course % grades |
+| `…_missing_assignments` / `…_late_assignments` | Counts |
+| `…_due_soon_assignments` / `…_upcoming_assignments` | Windows + assignment lists in attributes |
+| `…_absences` / `…_tardies` / `…_absent_days` / `…_tardy_days` | Attendance |
+| `…_schedule_periods` / `…_bulletin_items` / `…_class_roster` | Schedule, news, roster |
+| `…_status` | Diagnostic (identity / last scrape) |
+| `…_<course>` | Per-course grade (% or letter) |
+| `binary_sensor.…_has_missing_work` / `…_has_late_work` | Problem flags |
 
 Course unique IDs prefer PowerSchool `section_id` so renames do not orphan entities.
 
@@ -75,30 +76,52 @@ action: powerschool.refresh
 data: {}
 ```
 
-Forces an immediate poll of all configured PowerSchool entries. No entity target required.
+Forces an immediate poll of configured PowerSchool entries. No entity target required.
 
-## Options
+## Lovelace cards
 
-Integration → **Configure**: URL, credentials, students, update interval (5–1440 minutes).
+See **[docs/CARDS.md](docs/CARDS.md)** for previews and options.
 
-## Lovelace cards (V1 / V2 / V3)
-
-**Previews and comparison:** [`docs/CARDS.md`](docs/CARDS.md)
-
-| Card | Type | Style |
-|------|------|--------|
+| Card | Type | Best for |
+|------|------|----------|
 | V1 | `custom:powerschool-card` | Expandable course list |
 | V2 | `custom:powerschool-v2-card` | App-style color tiles |
-| V3 | `custom:powerschool-v3-card` | Class Overview (same engine as V2) |
+| V3 | `custom:powerschool-v3-card` | Class overview grid |
+| **V4** | `custom:powerschool-v4-card` | Due soon + grades + roster/attendance |
 
-YAML snippets: [`examples/lovelace-cards-v1-v2-v3.yaml`](examples/lovelace-cards-v1-v2-v3.yaml) · also [`examples/lovelace-cards.yaml`](examples/lovelace-cards.yaml), [`examples/dashboard-view.yaml`](examples/dashboard-view.yaml).
+Register as **JavaScript module** resources (Dashboard → Resources), for example:
+
+```text
+https://cdn.jsdelivr.net/gh/cjprsnin/powerschool-ha@main/www/powerschool-v4-card.js
+```
+
+School dashboard example: [`examples/school-v2-dashboard.yaml`](examples/school-v2-dashboard.yaml)
+
+```yaml
+type: custom:powerschool-v4-card
+student: Trent
+```
+
+## Profile pictures
+
+When the portal exposes a photo, it is cached under `/config/www/powerschool/` and set as `entity_picture` on summary sensors. Re-download is skipped when a local file already exists.
 
 ## Notifications
 
-Import the blueprint from [`blueprints/automation/powerschool_missing_work.yaml`](blueprints/automation/powerschool_missing_work.yaml) (or copy into `/config/blueprints/automation/`).
+Blueprints under [`blueprints/automation/`](blueprints/automation/):
+
+- Missing / late work
+- Due soon
+- Due tomorrow
 
 ## Notes
 
-- Uses the guardian/parent portal (not a public API)
-- Poll reasonably; default is 15 minutes
-- Photos are cached under `www/powerschool/` and refreshed on each successful poll when the portal provides a new image
+- Uses the guardian/parent portal (not a public district API)
+- Poll reasonably; default is **15 minutes**
+- First refresh after restart runs in the background so HA startup is not blocked
+- PowerSchool entities are not required in HomeKit; keep them out of include lists if you hit the device limit
+
+## Support
+
+- Issues: [github.com/cjprsnin/powerschool-ha/issues](https://github.com/cjprsnin/powerschool-ha/issues)
+- Changelog: [CHANGELOG.md](CHANGELOG.md)
