@@ -8,6 +8,9 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, SUMMARY_FIELDS
 
+# Coordinator owns polling; do not fan out parallel entity updates
+PARALLEL_UPDATES = 0
+
 
 def _slug(value):
     return "".join(ch.lower() if ch.isalnum() else "_" for ch in str(value)).strip("_")
@@ -86,15 +89,20 @@ class _StudentEntity(CoordinatorEntity):
         return _students(self.coordinator).get(self._student_name, {})
 
     @property
+    def available(self) -> bool:
+        # entity-unavailable: follow coordinator success, but keep cached data usable
+        if not self.coordinator.last_update_success:
+            return bool(self._student())
+        return True
+
+    @property
     def device_info(self):
-        student = self._student()
-        info = {
+        return {
             "identifiers": {(DOMAIN, f"student_{self._student_id}")},
             "name": f"PowerSchool {self._student_name}",
             "manufacturer": "PowerSchool",
             "model": "Student",
         }
-        return info
 
     @property
     def entity_picture(self):
@@ -102,7 +110,6 @@ class _StudentEntity(CoordinatorEntity):
 
 
 class PowerSchoolSummarySensor(_StudentEntity, SensorEntity):
-    # Large list/blob attrs: keep on entity state for cards, skip recorder history
     _unrecorded_attributes = frozenset({
         "assignments",
         "by_course",
@@ -120,7 +127,7 @@ class PowerSchoolSummarySensor(_StudentEntity, SensorEntity):
     def __init__(self, coordinator, student_name, student, key, field, label, unit, diagnostic):
         super().__init__(coordinator, student_name, student, key)
         self._field = field
-        self._attr_name = label  # device already named PowerSchool {student}
+        self._attr_name = label
         self._attr_unique_id = f"powerschool_{key}_{field}"
         self._attr_native_unit_of_measurement = unit
         if diagnostic:
@@ -213,7 +220,6 @@ class PowerSchoolDiagnosticSensor(_StudentEntity, SensorEntity):
 
 
 class PowerSchoolCourseSensor(_StudentEntity, SensorEntity):
-    # Assignment payloads often exceed recorder 16KB attr limit (e.g. Pre-Algebra)
     _unrecorded_attributes = frozenset({
         "assignments",
         "missing_homework",

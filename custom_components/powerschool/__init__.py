@@ -8,10 +8,9 @@ from urllib.parse import urlparse
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-import voluptuous as vol
 from urllib.error import URLError
 import ssl
 
@@ -131,6 +130,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     store = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}")
+    # log-when-unavailable: one message on outage, one on recovery
+    availability_state = {"was_unavailable": False}
 
     async def async_update():
         last_err = None
@@ -183,6 +184,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     last_err = err
 
             if auth_failed and not any_success:
+                if not availability_state["was_unavailable"]:
+                    _LOGGER.error(
+                        "PowerSchool unavailable (authentication failed)"
+                    )
+                    availability_state["was_unavailable"] = True
                 raise ConfigEntryAuthFailed(str(auth_failed)) from auth_failed
 
             if not any_success:
@@ -190,6 +196,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 if _is_transient(err) and attempt < 2:
                     await asyncio.sleep(1.5 * (attempt + 1))
                     continue
+                if not availability_state["was_unavailable"]:
+                    _LOGGER.error(
+                        "PowerSchool unavailable: %s",
+                        "; ".join(district_errors) or err,
+                    )
+                    availability_state["was_unavailable"] = True
                 raise UpdateFailed(
                     "; ".join(district_errors) or str(err)
                 ) from err
@@ -223,6 +235,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             result["update_duration_ms"] = duration_ms
             if district_errors:
                 result["district_errors"] = district_errors
+
+            if availability_state["was_unavailable"]:
+                _LOGGER.info("PowerSchool is available again")
+                availability_state["was_unavailable"] = False
+
             _LOGGER.info(
                 "PowerSchool refresh finished in %sms (%s student(s)%s)",
                 duration_ms,
@@ -256,7 +273,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
-    # Restore last successful scrape so entities exist before first network poll
     try:
         cached = await store.async_load()
     except Exception as err:
@@ -286,7 +302,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     async def handle_refresh(call: ServiceCall) -> None:
+        """Manual refresh — raise HomeAssistantError on failure (action-exceptions)."""
         await coordinator.async_request_refresh()
+        if not coordinator.last_update_success:
+            raise HomeAssistantError(
+                f"PowerSchool refresh failed: {coordinator.last_exception}"
+            )
 
     if not hass.services.has_service(DOMAIN, SERVICE_REFRESH):
         hass.services.async_register(DOMAIN, SERVICE_REFRESH, handle_refresh)

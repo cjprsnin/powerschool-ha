@@ -9,6 +9,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 
+PARALLEL_UPDATES = 0
+
 
 def _slug(value):
     return "".join(ch.lower() if ch.isalnum() else "_" for ch in str(value)).strip("_")
@@ -61,12 +63,18 @@ class PowerSchoolFlagBinarySensor(CoordinatorEntity, BinarySensorEntity):
         self._student_name = student_name
         self._student_id = str(student.get("student_id", ""))
         self._field = field
-        self._attr_name = label  # device already named PowerSchool {student}
+        self._attr_name = label
         self._attr_unique_id = f"powerschool_{key}_has_{field}"
         self._attr_icon = "mdi:alert-circle" if field == "missing" else "mdi:clock-alert"
 
     def _student(self):
         return _students(self.coordinator).get(self._student_name, {})
+
+    @property
+    def available(self) -> bool:
+        if not self.coordinator.last_update_success:
+            return bool(self._student())
+        return True
 
     @property
     def is_on(self):
