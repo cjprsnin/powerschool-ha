@@ -74,6 +74,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class _StudentEntity(CoordinatorEntity):
+    _attr_has_entity_name = True
+
     def __init__(self, coordinator, student_name, student, key):
         super().__init__(coordinator)
         self._student_name = student_name
@@ -118,11 +120,12 @@ class PowerSchoolSummarySensor(_StudentEntity, SensorEntity):
     def __init__(self, coordinator, student_name, student, key, field, label, unit, diagnostic):
         super().__init__(coordinator, student_name, student, key)
         self._field = field
-        self._attr_name = f"PowerSchool {student_name} {label}"
+        self._attr_name = label  # device already named PowerSchool {student}
         self._attr_unique_id = f"powerschool_{key}_{field}"
         self._attr_native_unit_of_measurement = unit
         if diagnostic:
             self._attr_entity_category = EntityCategory.DIAGNOSTIC
+            self._attr_entity_registry_enabled_default = False
 
     @property
     def native_value(self):
@@ -178,8 +181,9 @@ class PowerSchoolDiagnosticSensor(_StudentEntity, SensorEntity):
 
     def __init__(self, coordinator, student_name, student, key):
         super().__init__(coordinator, student_name, student, key)
-        self._attr_name = f"PowerSchool {student_name} Status"
+        self._attr_name = "Status"
         self._attr_unique_id = f"powerschool_{key}_status"
+        self._attr_entity_registry_enabled_default = False
 
     @property
     def native_value(self):
@@ -222,7 +226,7 @@ class PowerSchoolCourseSensor(_StudentEntity, SensorEntity):
         super().__init__(coordinator, student_name, student, key)
         self._course_name = course.get("course", "Course")
         self._section_id = course.get("section_id")
-        self._attr_name = f"PowerSchool {student_name} {self._course_name}"
+        self._attr_name = self._course_name
         self._attr_unique_id = _course_uid(key, course)
         self._attr_icon = "mdi:book-education"
 
