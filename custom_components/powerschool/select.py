@@ -16,7 +16,7 @@ class PowerSchoolStudentSelect(CoordinatorEntity, SelectEntity):
 
     def __init__(self, coordinator, entry_id):
         super().__init__(coordinator)
-        self._attr_name = "PowerSchool Student"
+        self._attr_name = "Student"
         self._attr_unique_id = f"powerschool_{entry_id}_student_selector"
         self._selected = None
 
