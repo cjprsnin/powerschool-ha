@@ -8,7 +8,7 @@ Unofficial Home Assistant integration for the **PowerSchool Parent Portal**.
 
 Pulls grades, assignments, missing/late work, attendance, schedule, bulletin, class roster, and optional **student photos** for selected students.
 
-**Version:** 1.5.0
+**Version:** 1.5.1
 
 ![Card styles](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/docs/images/card-styles-compare.svg)
 
@@ -47,7 +47,7 @@ Copy `custom_components/powerschool` into `/config/custom_components/`, restart,
 | Username / Password | Guardian login |
 | Name | Optional label (e.g. `D41`, `High School`) |
 | Students | Which children to track |
-| Update interval | 5–1440 minutes (default 15) |
+| Update interval | 5–1440 minutes (default 30) |
 
 **Options** (integration → Configure):
 
@@ -112,16 +112,33 @@ When the portal exposes a photo, it is cached under `/config/www/powerschool/` a
 
 ## Notifications
 
-Blueprints under [`blueprints/automation/`](blueprints/automation/):
+Blueprints live in [`blueprints/automation/`](blueprints/automation/). Import from **Settings → Automations & Scenes → Blueprints → Import blueprint** using a raw GitHub URL, or copy the YAML into `/config/blueprints/automation/powerschool/`.
 
-- Missing / late work
-- Due soon
-- Due tomorrow
+| Blueprint | When it fires | Sensor to pick |
+|-----------|---------------|----------------|
+| [Due tomorrow](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/blueprints/automation/powerschool_due_tomorrow.yaml) | Daily at 17:00 (configurable) if any **ungraded** work is due tomorrow | `…_upcoming_assignments` |
+| [Due soon](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/blueprints/automation/powerschool_due_soon.yaml) | When the due-soon **count increases** | `…_due_soon_assignments` |
+| [Missing / late](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/blueprints/automation/powerschool_missing_work.yaml) | When missing or late **count increases** | `…_missing_assignments` and `…_late_assignments` |
+
+`powerschool_due_today.yaml` is a **legacy filename** for the same due-tomorrow digest — prefer `powerschool_due_tomorrow.yaml` for new automations.
+
+### Setup tips
+
+1. Create **one automation per student** (or one shared notify service).
+2. **Notify service** must be the full service id, e.g. `notify.mobile_app_iphone`.
+3. Due-soon and missing/late support **quiet hours** (default 22:00–07:00).
+4. Assignment lists on due-soon / upcoming sensors are **ungraded only** — graded work does not affect averages or these digests.
+
+Example import URL:
+
+```text
+https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/blueprints/automation/powerschool_due_tomorrow.yaml
+```
 
 ## Notes
 
 - Uses the guardian/parent portal (not a public district API)
-- Poll reasonably; default is **15 minutes**
+- Poll reasonably; default is **30 minutes**
 - First refresh after restart runs in the background so HA startup is not blocked
 - PowerSchool entities are not required in HomeKit; keep them out of include lists if you hit the device limit
 
