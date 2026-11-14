@@ -1722,6 +1722,8 @@ def process_student(st, photo_dir=None):
     pending=[]
     # Phase 1: build course shells + discover section ids without assignment HTTP
     pending=[]
+    # Phase 1: build course shells + discover section ids without assignment HTTP
+    pending=[]
     for c in courses:
         cr={k:c.get(k) for k in ('course','grade_raw','grade_percent','grade_letter','grade_level','grade_scale','term_grades','section_id','absences','tardies','teacher','room')}
         cr['assignments']=[]
