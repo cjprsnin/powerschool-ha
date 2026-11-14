@@ -53,6 +53,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class PowerSchoolFlagBinarySensor(CoordinatorEntity, BinarySensorEntity):
+    _attr_has_entity_name = True
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
 
     def __init__(self, coordinator, student_name, student, key, field, label):
@@ -60,7 +61,7 @@ class PowerSchoolFlagBinarySensor(CoordinatorEntity, BinarySensorEntity):
         self._student_name = student_name
         self._student_id = str(student.get("student_id", ""))
         self._field = field
-        self._attr_name = f"PowerSchool {student_name} {label}"
+        self._attr_name = label  # device already named PowerSchool {student}
         self._attr_unique_id = f"powerschool_{key}_has_{field}"
         self._attr_icon = "mdi:alert-circle" if field == "missing" else "mdi:clock-alert"
 
