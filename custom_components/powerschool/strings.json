@@ -3,12 +3,20 @@
     "step": {
       "user": {
         "title": "PowerSchool",
-        "description": "Connect your PowerSchool Parent Portal.",
+        "description": "Connect your PowerSchool Parent Portal. Use the district URL (https://…) and the same username/password you use on the web.",
         "data": {
+          "name": "District label (optional)",
           "url": "PowerSchool URL",
           "username": "Username",
           "password": "Password",
           "update_interval": "Update interval (minutes)"
+        },
+        "data_description": {
+          "name": "Short name shown when you have more than one district.",
+          "url": "Base portal URL only — no /public or /guardian path required.",
+          "username": "Parent portal username.",
+          "password": "Parent portal password.",
+          "update_interval": "How often to scrape grades (default 30). Minimum 5 minutes."
         }
       },
       "students": {
@@ -17,25 +25,62 @@
         "data": {
           "students": "Students"
         }
+      },
+      "add_another": {
+        "title": "Add another district?",
+        "description": "You can attach a second PowerSchool district (for example high school later) to the same entry.",
+        "data": {
+          "add_another": "Add another district"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate PowerSchool",
+        "description": "Login failed for {name}. Enter updated credentials.",
+        "data": {
+          "url": "PowerSchool URL",
+          "username": "Username",
+          "password": "Password"
+        }
       }
     },
     "error": {
       "invalid_auth": "Invalid PowerSchool credentials.",
       "cannot_connect": "Could not connect to PowerSchool.",
       "no_students": "Login succeeded, but no students were found."
+    },
+    "abort": {
+      "reauth_successful": "Re-authentication successful.",
+      "already_configured": "This PowerSchool account is already configured."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "PowerSchool options",
-        "description": "Update portal credentials, students, or poll interval.",
+        "description": "Change the poll interval or add another district portal.",
         "data": {
+          "action": "Action",
+          "update_interval": "Update interval (minutes)"
+        },
+        "data_description": {
+          "update_interval": "Minutes between scrapes. Grades rarely need less than 30."
+        }
+      },
+      "add": {
+        "title": "Add district",
+        "description": "Sign in to another PowerSchool district.",
+        "data": {
+          "name": "District label (optional)",
           "url": "PowerSchool URL",
           "username": "Username",
-          "password": "Password",
-          "students": "Students",
-          "update_interval": "Update interval (minutes)"
+          "password": "Password"
+        }
+      },
+      "add_students": {
+        "title": "Select students",
+        "description": "Choose students from this district.",
+        "data": {
+          "students": "Students"
         }
       }
     }

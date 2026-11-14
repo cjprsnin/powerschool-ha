@@ -93,6 +93,7 @@ class PowerSchoolConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._pending: dict = {}
         self._students: list = []
         self._interval = DEFAULT_UPDATE_INTERVAL
+        self._reauth_entry: config_entries.ConfigEntry | None = None
 
     async def async_step_user(self, user_input=None):
         errors: dict[str, str] = {}
@@ -202,6 +203,77 @@ class PowerSchoolConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ),
         )
 
+    async def async_step_reauth(self, entry_data):
+        """Triggered when ConfigEntryAuthFailed is raised during update."""
+        entry_id = self.context.get("entry_id")
+        self._reauth_entry = self.hass.config_entries.async_get_entry(entry_id)
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(self, user_input=None):
+        """Ask for updated credentials without removing the entry."""
+        errors: dict[str, str] = {}
+        entry = self._reauth_entry
+        if entry is None:
+            return self.async_abort(reason="unknown")
+
+        data = dict(entry.data)
+        districts = _districts_from_data(data)
+        primary = districts[0] if districts else data
+
+        if user_input is not None:
+            url = _normalize_url(user_input.get(CONF_URL) or primary.get(CONF_URL) or "")
+            username = user_input.get(CONF_USERNAME) or primary.get(CONF_USERNAME)
+            password = user_input[CONF_PASSWORD]
+            try:
+                client = PowerSchoolClient(url, username, password)
+                students = await self.hass.async_add_executor_job(
+                    client.discover_students
+                )
+                if not students:
+                    errors["base"] = "no_students"
+                else:
+                    # Update primary district credentials (and legacy top-level keys)
+                    if districts:
+                        districts[0] = dict(districts[0])
+                        districts[0][CONF_URL] = url
+                        districts[0][CONF_USERNAME] = username
+                        districts[0][CONF_PASSWORD] = password
+                        new_data = dict(data)
+                        new_data[CONF_DISTRICTS] = districts
+                    else:
+                        new_data = dict(data)
+                    new_data[CONF_URL] = url
+                    new_data[CONF_USERNAME] = username
+                    new_data[CONF_PASSWORD] = password
+                    self.hass.config_entries.async_update_entry(entry, data=new_data)
+                    await self.hass.config_entries.async_reload(entry.entry_id)
+                    return self.async_abort(reason="reauth_successful")
+            except PermissionError:
+                errors["base"] = "invalid_auth"
+            except Exception:
+                errors["base"] = "cannot_connect"
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_URL,
+                        default=primary.get(CONF_URL) or "",
+                    ): str,
+                    vol.Optional(
+                        CONF_USERNAME,
+                        default=primary.get(CONF_USERNAME) or "",
+                    ): str,
+                    vol.Required(CONF_PASSWORD): str,
+                }
+            ),
+            errors=errors,
+            description_placeholders={
+                "name": entry.title or "PowerSchool",
+            },
+        )
+
     async def _async_finish(self):
         data = {
             CONF_DISTRICTS: list(self._districts),
@@ -225,15 +297,11 @@ class PowerSchoolConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
-        # HA 2024.4+: do not pass config_entry into OptionsFlow.__init__
         return PowerSchoolOptionsFlow()
 
 
 class PowerSchoolOptionsFlow(config_entries.OptionsFlow):
-    """Options: poll interval or add another district.
-
-    Uses self.config_entry provided by Home Assistant (not set in __init__).
-    """
+    """Options: poll interval or add another district."""
 
     def __init__(self) -> None:
         self._pending: dict = {}
