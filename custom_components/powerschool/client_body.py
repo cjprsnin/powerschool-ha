@@ -114,20 +114,56 @@ def _ensure_opener():
         opener=build_opener(HTTPCookieProcessor(jar))
     return opener
 
-def request(url,method='GET',data=None,json_data=None,headers=None):
+def request(url,method='GET',data=None,json_data=None,headers=None,max_retries=3):
+    """HTTP helper with DELAY and polite 429 / Retry-After backoff."""
     op=_ensure_opener()
     h={'User-Agent':UA,'Accept':'*/*'};h.update(headers or {});body=None
     if json_data is not None:
         body=json.dumps(json_data).encode();h.setdefault('Content-Type','application/json');h.setdefault('Accept','application/json, text/plain, */*')
     elif data is not None:
         body=urlencode(data).encode();h.setdefault('Content-Type','application/x-www-form-urlencoded')
-    req=Request(url,data=body,headers=h,method=method);time.sleep(_S('DELAY'));debug('%s %s'%(method,url))
-    try:
-        r=op.open(req,timeout=_S('TIMEOUT'));raw=r.read();enc=r.headers.get_content_charset() or 'utf-8';text=raw.decode(enc,errors='replace');debug('HTTP %s %s (%d bytes)'%(r.status,r.geturl(),len(raw)))
-        return {'status':r.status,'url':r.geturl(),'headers':r.headers,'body':text}
-    except HTTPError as e:
-        raw=e.read();text=raw.decode(e.headers.get_content_charset() or 'utf-8',errors='replace');return {'status':e.code,'url':e.geturl(),'headers':e.headers,'body':text,'error':str(e)}
-    except URLError as e:return {'status':0,'url':url,'headers':{},'body':'','error':str(e)}
+    last=None
+    for attempt in range(max_retries + 1):
+        req=Request(url,data=body,headers=h,method=method)
+        time.sleep(_S('DELAY'))
+        debug('%s %s (attempt %d)'%(method,url,attempt+1))
+        try:
+            r=op.open(req,timeout=_S('TIMEOUT'))
+            raw=r.read()
+            enc=r.headers.get_content_charset() or 'utf-8'
+            text=raw.decode(enc,errors='replace')
+            debug('HTTP %s %s (%d bytes)'%(r.status,r.geturl(),len(raw)))
+            return {'status':r.status,'url':r.geturl(),'headers':r.headers,'body':text}
+        except HTTPError as e:
+            raw=e.read()
+            text=raw.decode(e.headers.get_content_charset() or 'utf-8',errors='replace')
+            last={'status':e.code,'url':e.geturl(),'headers':e.headers,'body':text,'error':str(e)}
+            if e.code == 429 and attempt < max_retries:
+                ra = None
+                try:
+                    ra = e.headers.get('Retry-After') or e.headers.get('retry-after')
+                except Exception:
+                    ra = None
+                wait = 5.0
+                if ra:
+                    try:
+                        wait = float(str(ra).strip())
+                    except ValueError:
+                        wait = 5.0
+                wait = max(1.0, min(wait, 60.0))
+                debug('HTTP 429 — sleeping %.1fs then retry'%wait)
+                time.sleep(wait)
+                continue
+            return last
+        except URLError as e:
+            last={'status':0,'url':url,'headers':{},'body':'','error':str(e)}
+            if attempt < max_retries:
+                wait = min(2 ** attempt, 15)
+                debug('URLError %s — sleep %ss'% (e, wait))
+                time.sleep(wait)
+                continue
+            return last
+    return last or {'status':0,'url':url,'headers':{},'body':'','error':'request failed'}
 
 def get(url,headers=None):return request(url,'GET',headers=headers)
 def post(url,data,headers=None):return request(url,'POST',data=data,headers=headers)
