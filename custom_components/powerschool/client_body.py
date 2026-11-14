@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import argparse, getpass, html, json, os, re, sys, time, threading
+import argparse, getpass, html, json, os, re, sys, time, threading, threading
 from html.parser import HTMLParser
 from http.cookiejar import CookieJar
 from urllib.parse import urlencode, urljoin, urlparse, parse_qs
@@ -17,7 +17,32 @@ DEBUG=os.environ.get('POWERSCHOOL_DEBUG','').lower() in ('1','true','yes','on')
 GET_ASSIGNMENTS=os.environ.get('POWERSCHOOL_GET_ASSIGNMENTS','1').lower() not in ('0','false','no','off')
 UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/153.0 Safari/537.36'
 jar=CookieJar(); opener=None
-_CLIENT_LOCK=threading.RLock()  # serialize HA scrapes sharing module globals
+# Thread-local portal session: each executor worker binds its own URL/cookies.
+# Module-level jar/opener remain as CLI defaults when no session is bound.
+_tls=threading.local()
+
+def _S(name):
+    """Read a session value from the active thread, else module default."""
+    if hasattr(_tls, name):
+        return getattr(_tls, name)
+    return globals()[name]
+
+def _bind_tls_session(*, base_url, term_start, term_end, delay=None):
+    """Install a fresh portal session on this thread."""
+    base=(base_url or '').rstrip('/')
+    _tls.BASE_URL=base
+    _tls.PUBLIC_URL=base+'/public/'
+    _tls.LOGIN_URL=base+'/guardian/home.html'
+    _tls.HOME_URL=_tls.LOGIN_URL
+    _tls.LOOKUP_URL=''
+    _tls.ACTIVE_TERM_START=term_start
+    _tls.ACTIVE_TERM_END=term_end
+    _tls.TIMEOUT=30
+    _tls.DELAY=float(delay if delay is not None else os.environ.get('POWERSCHOOL_DELAY','0.05'))
+    _tls.GET_ASSIGNMENTS=True
+    _tls.jar=CookieJar()
+    _tls.opener=None
+
 
 def debug(s):
     if DEBUG: print('[DEBUG] '+str(s),file=sys.stderr)
@@ -77,6 +102,12 @@ def first(d,*keys):
     return None
 
 def _ensure_opener():
+    # Prefer thread-local session (HA integration); fall back to module globals (CLI).
+    if hasattr(_tls, 'opener'):
+        if _tls.opener is None:
+            _tls.jar=CookieJar()
+            _tls.opener=build_opener(HTTPCookieProcessor(_tls.jar))
+        return _tls.opener
     global jar, opener
     if opener is None:
         jar=CookieJar()
@@ -84,28 +115,28 @@ def _ensure_opener():
     return opener
 
 def request(url,method='GET',data=None,json_data=None,headers=None):
-    global opener
-    _ensure_opener()
+    op=_ensure_opener()
     h={'User-Agent':UA,'Accept':'*/*'};h.update(headers or {});body=None
     if json_data is not None:
         body=json.dumps(json_data).encode();h.setdefault('Content-Type','application/json');h.setdefault('Accept','application/json, text/plain, */*')
     elif data is not None:
         body=urlencode(data).encode();h.setdefault('Content-Type','application/x-www-form-urlencoded')
-    req=Request(url,data=body,headers=h,method=method);time.sleep(DELAY);debug('%s %s'%(method,url))
+    req=Request(url,data=body,headers=h,method=method);time.sleep(_S('DELAY'));debug('%s %s'%(method,url))
     try:
-        r=opener.open(req,timeout=TIMEOUT);raw=r.read();enc=r.headers.get_content_charset() or 'utf-8';text=raw.decode(enc,errors='replace');debug('HTTP %s %s (%d bytes)'%(r.status,r.geturl(),len(raw)))
+        r=op.open(req,timeout=_S('TIMEOUT'));raw=r.read();enc=r.headers.get_content_charset() or 'utf-8';text=raw.decode(enc,errors='replace');debug('HTTP %s %s (%d bytes)'%(r.status,r.geturl(),len(raw)))
         return {'status':r.status,'url':r.geturl(),'headers':r.headers,'body':text}
     except HTTPError as e:
         raw=e.read();text=raw.decode(e.headers.get_content_charset() or 'utf-8',errors='replace');return {'status':e.code,'url':e.geturl(),'headers':e.headers,'body':text,'error':str(e)}
     except URLError as e:return {'status':0,'url':url,'headers':{},'body':'','error':str(e)}
+
 def get(url,headers=None):return request(url,'GET',headers=headers)
 def post(url,data,headers=None):return request(url,'POST',data=data,headers=headers)
 def post_json(url,data,headers=None):return request(url,'POST',json_data=data,headers=headers)
 
 def login(user,pw):
-    get(PUBLIC_URL)
+    get(_S('PUBLIC_URL'))
     payload={'account':user,'pw':pw,'dbpw':'','ldappassword':'','translator':'','translatorPassword':'','returnUrl':'','serviceName':'','serviceTicket':'','pcasServerUrl':'','credentialType':'','request_locale':'en_US'}
-    r=post(LOGIN_URL,payload,{'Referer':PUBLIC_URL,'Origin':BASE_URL});debug('Login status=%s final=%s'%(r['status'],r['url']));save_debug('powerschool_debug_login.html',r['body']);return r
+    r=post(_S('LOGIN_URL'),payload,{'Referer':_S('PUBLIC_URL'),'Origin':_S('BASE_URL')});debug('Login status=%s final=%s'%(r['status'],r['url']));save_debug('powerschool_debug_login.html',r['body']);return r
 
 def login_success(r):
     s=r['body'].lower();good=('switchstudent','studentfrn','studentdcid','attbyclass','logout','studentscores','student scores');return any(x in s for x in good)
@@ -157,7 +188,7 @@ def find_students(src):
         photo=extract_photo_source(fragment)
         students[student_id]={'student_id':student_id,'name':name}
         if photo:
-            students[student_id]['photo_source_url']=urljoin(HOME_URL,photo)
+            students[student_id]['photo_source_url']=urljoin(_S('HOME_URL'),photo)
         debug('Student switch entry: %s -> %s%s'%(student_id,name,(' photo='+students[student_id]['photo_source_url']) if photo else ''))
     debug('Student discovery found %d candidates'%len(students));return list(students.values())
 
@@ -170,7 +201,7 @@ def discover_student_photo(src, student_id):
     if m:
         photo=extract_photo_source(m.group(1))
         if photo:
-            return urljoin(HOME_URL,photo)
+            return urljoin(_S('HOME_URL'),photo)
     return None
 
 
@@ -181,7 +212,7 @@ def candidate_photo_urls(student_id, student_frn=None, student_dcid=None):
     def add(u):
         if u and u not in seen:
             seen.add(u); urls.append(u)
-    base = HOME_URL.rstrip('/')
+    base = _S('HOME_URL').rstrip('/')
     # FRN forms (001 + dcid is common)
     frns = []
     if student_frn:
@@ -237,8 +268,8 @@ def save_student_photo(photo_url, student_id, photo_dir, force=False):
     if not photo_url:
         return None
     try:
-        req=Request(photo_url,headers={'User-Agent':UA,'Accept':'image/avif,image/webp,image/apng,image/*,*/*;q=0.8','Referer':HOME_URL})
-        rr=opener.open(req,timeout=TIMEOUT)
+        req=Request(photo_url,headers={'User-Agent':UA,'Accept':'image/avif,image/webp,image/apng,image/*,*/*;q=0.8','Referer':_S('HOME_URL')})
+        rr=_ensure_opener().open(req,timeout=_S('TIMEOUT'))
         raw=rr.read(); ctype=rr.headers.get('Content-Type','')
         if not raw:
             return None
@@ -263,7 +294,7 @@ def save_student_photo(photo_url, student_id, photo_dir, force=False):
         debug('Student photo download failed: %s'%e)
         return None
 
-def switch_student(i):return post(LOGIN_URL,{'selected_student_id':str(i)},{'Referer':HOME_URL,'Origin':BASE_URL})
+def switch_student(i):return post(_S('LOGIN_URL'),{'selected_student_id':str(i)},{'Referer':_S('HOME_URL'),'Origin':_S('BASE_URL')})
 def attrs(tag):return {m.group(1).lower():m.group(3) for m in re.finditer(r'([\w:-]+)\s*=\s*(["\'])(.*?)\2',tag,re.S)}
 def cells(row):
     out=[]
@@ -497,7 +528,7 @@ def parse_grade_table(src):
         for link in row.get('links',[]):
             href=link.get('href','')
             # The hrefs in this table are relative to /guardian/home.html.
-            absolute=urljoin(HOME_URL,href)
+            absolute=urljoin(_S('HOME_URL'),href)
             item=dict(link);item['href']=absolute
             links.append(item)
 
@@ -800,7 +831,7 @@ def context(src,url):
 
 def resource_root(src):
     m=re.search(r'\bresourceRoot\s*(?:=|:)\s*["\']([^"\']+)',src,re.I)
-    return (urljoin(BASE_URL+'/',m.group(1).lstrip('/')).rstrip('/') if m else BASE_URL+'/ws/xte')
+    return (urljoin(_S('BASE_URL')+'/',m.group(1).lstrip('/')).rstrip('/') if m else _S('BASE_URL')+'/ws/xte')
 
 def lookup_payload(ctx,student_id):
     """Build the same core payload used by PowerSchool's Angular client."""
@@ -1052,12 +1083,12 @@ def fetch_assignments_for_section(section_id,student_id,debug_tag='course',stude
         'end_date':current_school_year_dates()[1],
         'studentdcid':str(student_dcid)
     }
-    url=BASE_URL+'/ws/xte/assignment/lookup'
+    url=_S('BASE_URL')+'/ws/xte/assignment/lookup'
     payload=lookup_payload(ctx,student_id)
     debug('Direct section discovery: section_id=%s' % section_id)
     debug('Assignment URL: '+url)
     debug('Assignment payload: '+json.dumps(payload))
-    rr=post_json(url,payload,{'Referer':HOME_URL,'Origin':BASE_URL,'X-Requested-With':'XMLHttpRequest'})
+    rr=post_json(url,payload,{'Referer':_S('HOME_URL'),'Origin':_S('BASE_URL'),'X-Requested-With':'XMLHttpRequest'})
     if DEBUG:
         safe=re.sub(r'[^A-Za-z0-9_-]+','_',debug_tag).strip('_') or 'course'
         save_debug('powerschool_assignment_response_%s_direct.txt'%safe,rr['body'])
@@ -1094,12 +1125,12 @@ def fetch_assignments_for_sections(section_ids, student_id, student_dcid=None, d
         'end_date':end,
         'studentdcid':str(student_dcid),
     }
-    url=BASE_URL+'/ws/xte/assignment/lookup'
+    url=_S('BASE_URL')+'/ws/xte/assignment/lookup'
     payload=lookup_payload(ctx,student_id)
     debug('Batch section lookup: %d section(s) dcid=%s' % (len(ids), student_dcid))
     debug('Assignment URL: '+url)
     debug('Assignment payload: '+json.dumps(payload))
-    rr=post_json(url,payload,{'Referer':HOME_URL,'Origin':BASE_URL,'X-Requested-With':'XMLHttpRequest'})
+    rr=post_json(url,payload,{'Referer':_S('HOME_URL'),'Origin':_S('BASE_URL'),'X-Requested-With':'XMLHttpRequest'})
     if DEBUG:
         safe=re.sub(r'[^A-Za-z0-9_-]+','_',debug_tag).strip('_') or 'batch'
         save_debug('powerschool_assignment_response_%s_batch.txt'%safe,rr['body'])
@@ -1151,9 +1182,9 @@ def fetch_assignments(score_url,student_id,debug_tag='course',section_id=None,st
         if m:
             ctx['section_ids']=[m.group(1)]
     debug('Score context: '+json.dumps(ctx,ensure_ascii=False))
-    root=resource_root(src);url=LOOKUP_URL or root+'/assignment/lookup';payload=lookup_payload(ctx,student_id)
+    root=resource_root(src);url=_S('LOOKUP_URL') or root+'/assignment/lookup';payload=lookup_payload(ctx,student_id)
     debug('Assignment URL: '+url);debug('Assignment payload: '+json.dumps(payload))
-    rr=post_json(url,payload,{'Referer':r['url'],'Origin':BASE_URL,'X-Requested-With':'XMLHttpRequest'})
+    rr=post_json(url,payload,{'Referer':r['url'],'Origin':_S('BASE_URL'),'X-Requested-With':'XMLHttpRequest'})
     if DEBUG:
         safe=re.sub(r'[^A-Za-z0-9_-]+','_',debug_tag).strip('_') or 'course'
         save_debug('powerschool_assignment_response_%s.txt'%safe,rr['body'])
@@ -1235,7 +1266,7 @@ def discover_student_dcid(src, fallback=None):
 
 
 def _guardian(path):
-    return urljoin(HOME_URL, path)
+    return urljoin(_S('HOME_URL'), path)
 
 def fetch_html(path_or_url):
     url = path_or_url if str(path_or_url).startswith('http') else _guardian(path_or_url)
@@ -1642,7 +1673,7 @@ def scrape_portal_extras(home_src=None):
 def process_student(st, photo_dir=None):
     sid=st['student_id'];name=st['name'];debug('Switching student %s (%s)'%(sid,name));sw=switch_student(sid)
     if sw['status']>=400:return {'student_id':sid,'name':name,'error':'Student switch HTTP %s'%sw['status'],'courses':[]}
-    home=get(HOME_URL);page=home if home['status']<400 else sw;debug_student_page(sid,name,page);src=page['body'];courses=parse_grade_table(src)
+    home=get(_S('HOME_URL'));page=home if home['status']<400 else sw;debug_student_page(sid,name,page);src=page['body'];courses=parse_grade_table(src)
     if not courses and page is not sw:courses=parse_grade_table(sw['body'])
     if not courses:debug('No actual ccid course rows found for %s. Student remains valid.'%name)
     identity=discover_student_identity(src)
@@ -1659,7 +1690,7 @@ def process_student(st, photo_dir=None):
             probe_link=score_link(probe_course)
             if not probe_link:
                 continue
-            probe=get(urljoin(HOME_URL,probe_link['href']))
+            probe=get(urljoin(_S('HOME_URL'),probe_link['href']))
             if probe['status']>=400:
                 continue
             probe_identity=discover_student_identity(probe.get('body',''))
@@ -1718,6 +1749,8 @@ def process_student(st, photo_dir=None):
         debug('No student photo found for %s (id=%s frn=%s dcid=%s)'%(name,sid,student_frn,student_dcid))
     if not courses:
         debug('No course rows/links found for %s. Student remains valid.'%name);return result
+    # Phase 1: build course shells + discover section ids without assignment HTTP
+    pending=[]
     # Phase 1: build course shells + discover section ids without assignment HTTP
     pending=[]
     # Phase 1: build course shells + discover section ids without assignment HTTP
@@ -1883,7 +1916,7 @@ def main():
             print(json.dumps({'_meta':{'version':4,'error':'Student not found','requested_student':a.student},'available_students':[st.get('name') for st in students]},indent=2,ensure_ascii=False))
             return 1
         students=selected
-    out={'_meta':{'version':4,'updated':time.strftime('%Y-%m-%dT%H:%M:%S'),'students':len(students),'get_assignments':GET_ASSIGNMENTS,'schema':'powerschool_grades_v4'}}
+    out={'_meta':{'version':4,'updated':time.strftime('%Y-%m-%dT%H:%M:%S'),'students':len(students),'get_assignments':_S('GET_ASSIGNMENTS'),'schema':'powerschool_grades_v4'}}
     for st in students:
         try:res=process_student(st)
         except Exception as e:debug('Unhandled error processing %s: %s'%(st['name'],e));res={'student_id':st['student_id'],'name':st['name'],'error':str(e),'courses':[]}
@@ -1992,7 +2025,7 @@ class PowerSchoolClient:
         # Store config only. Module globals (BASE_URL/opener) are bound under
         # _CLIENT_LOCK at the start of discover/fetch so concurrent HA jobs
         # cannot interleave two districts mid-request.
-        self.base_url=(base_url or BASE_URL).rstrip('/')
+        self.base_url=(base_url or _S('BASE_URL')).rstrip('/')
         self.username=username
         self.password=password
         self.term_start=term_start or current_school_year_range()[0]
@@ -2000,21 +2033,14 @@ class PowerSchoolClient:
         self.photo_dir=photo_dir
 
     def _bind_session(self):
-        """Apply this client's portal settings to module globals. Caller must hold _CLIENT_LOCK."""
-        global BASE_URL, PUBLIC_URL, LOGIN_URL, HOME_URL, LOOKUP_URL, TIMEOUT, DELAY, ACTIVE_TERM_START, ACTIVE_TERM_END, GET_ASSIGNMENTS, opener, jar
-        BASE_URL=self.base_url
-        PUBLIC_URL=BASE_URL+'/public/'
-        LOGIN_URL=BASE_URL+'/guardian/home.html'
-        HOME_URL=LOGIN_URL
-        LOOKUP_URL=''
-        ACTIVE_TERM_START=self.term_start
-        ACTIVE_TERM_END=self.term_end
-        TIMEOUT=30
-        DELAY=float(os.environ.get("POWERSCHOOL_DELAY","0.05"))
-        GET_ASSIGNMENTS=True
-        # Fresh cookie jar per bound session; opener stays lazy (executor only).
-        jar=CookieJar()
-        opener=None
+        """Bind this client's portal settings onto the current thread."""
+        _bind_tls_session(
+            base_url=self.base_url,
+            term_start=self.term_start,
+            term_end=self.term_end,
+            delay=os.environ.get('POWERSCHOOL_DELAY','0.05'),
+        )
+
 
     def _login_and_discover(self):
         r=login(self.username,self.password)
@@ -2022,23 +2048,18 @@ class PowerSchoolClient:
             raise PermissionError('PowerSchool login failed')
         students=find_students(r['body'])
         if not students:
-            home=get(HOME_URL)
+            home=get(_S('HOME_URL'))
             if home['status'] in (401,403) or not login_success(home):
                 raise PermissionError('PowerSchool login failed')
             students=find_students(home['body'])
         return students
 
     def discover_students(self):
-        with _CLIENT_LOCK:
-            self._bind_session()
-            return self._login_and_discover()
+        self._bind_session()
+        return self._login_and_discover()
 
     def fetch_students(self, selected_ids=None):
-        with _CLIENT_LOCK:
-            self._bind_session()
-            return self._fetch_students_locked(selected_ids)
-
-    def _fetch_students_locked(self, selected_ids=None):
+        self._bind_session()
         students=self._login_and_discover()
         selected={str(x) for x in (selected_ids or [])}
         if selected:
