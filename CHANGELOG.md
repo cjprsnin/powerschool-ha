@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.5.1 — 2026-11-13
+
+### Added
+- **Store cache** for last successful scrape + grade history (entities available before first network poll)
+- **Per-district error isolation** (one portal failing does not drop the other)
+- **`ConfigEntryAuthFailed`** on login failure (HA reconfigure prompt)
+- Thread-local / session-bind path for safer concurrent scrapes (patch scripts)
+- Batch multi-section assignment lookup (patch script)
+- Photo-miss cache (7-day `.none` marker) and lower default inter-request DELAY (patch scripts)
+
+### Fixed
+- Recorder warnings for large course attributes (`_unrecorded_attributes` on assignment/attendance blobs)
+
+### Changed
+- Default update interval **30** minutes
+- Entity naming via `_attr_has_entity_name` (names relative to student device)
+- Diagnostic summary sensors **disabled by default** for new entities
+- Notification blueprints: reliable template variables, quieter messages, combined missing/late totals, quiet hours docs
+- README Notifications section with import URLs and setup tips
+
 ## 1.5.0 — 2026-11-13
 
 ### Added
