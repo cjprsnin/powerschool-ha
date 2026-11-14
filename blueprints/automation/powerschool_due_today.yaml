@@ -1,18 +1,23 @@
 blueprint:
-  name: PowerSchool due tomorrow (legacy path)
+  name: PowerSchool due tomorrow (legacy filename)
   description: >
-    Prefer powerschool_due_tomorrow.yaml. This file remains for older
-    installs; default time is 17:00 and filters days_until_due == 1.
+    Legacy file name kept for older imports. Same behavior as
+    powerschool_due_tomorrow.yaml — afternoon digest of work due tomorrow
+    (days_until_due == 1). Prefer importing powerschool_due_tomorrow.yaml
+    for new automations.
   domain: automation
+  source_url: https://github.com/cjprsnin/powerschool-ha/blob/main/blueprints/automation/powerschool_due_today.yaml
   input:
     upcoming_sensor:
       name: Upcoming assignments sensor
+      description: sensor.*_upcoming_count (or Upcoming Assignments)
       selector:
         entity:
           integration: powerschool
           domain: sensor
-    notify_device:
-      name: Notify service (e.g. notify.mobile_app_phone)
+    notify_service:
+      name: Notify service
+      description: "Full service id, e.g. notify.mobile_app_iphone"
       selector:
         text:
     time:
@@ -20,6 +25,10 @@ blueprint:
       default: "17:00:00"
       selector:
         time:
+
+variables:
+  upcoming_sensor: !input upcoming_sensor
+  notify_service: !input notify_service
 
 trigger:
   - platform: time
@@ -34,14 +43,17 @@ condition:
 
 action:
   - variables:
-      upcoming_sensor: !input upcoming_sensor
       items: "{{ state_attr(upcoming_sensor, 'assignments') or [] }}"
       soon: "{{ items | selectattr('days_until_due', 'equalto', 1) | list }}"
-  - service: !input notify_device
+      student: >
+        {{ state_attr(upcoming_sensor, 'student')
+           or (state_attr(upcoming_sensor, 'friendly_name') or 'Student') }}
+  - service: "{{ notify_service }}"
     data:
-      title: PowerSchool — due tomorrow
+      title: "Due tomorrow — {{ student }}"
       message: >
+        {{ soon | count }} assignment{{ 's' if soon | count != 1 else '' }} due tomorrow.
         {% for a in soon %}
-        • {{ a.name }} ({{ a.course }})
+        • {{ a.name }}{% if a.course %} ({{ a.course }}){% endif %}
         {% endfor %}
 mode: single

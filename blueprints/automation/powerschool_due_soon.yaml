@@ -1,40 +1,48 @@
 blueprint:
   name: PowerSchool due-soon assignments
   description: >
-    Notify when a student has more assignments in the due-soon window
-    (default ~2 days). Fires when the due-soon count increases.
-    Optional quiet hours skip overnight alerts.
+    Notify when a student's due-soon count increases (ungraded work in the
+    ~2-day window). Lists up to five assignments. Optional quiet hours skip
+    overnight alerts (default 22:00–07:00).
   domain: automation
+  source_url: https://github.com/cjprsnin/powerschool-ha/blob/main/blueprints/automation/powerschool_due_soon.yaml
   input:
     due_soon_sensor:
       name: Due soon assignments sensor
+      description: sensor.*_due_soon_count (or Due Soon Assignments)
       selector:
         entity:
           integration: powerschool
           domain: sensor
-    notify_device:
-      name: Notify service (e.g. notify.mobile_app_phone)
+    notify_service:
+      name: Notify service
+      description: "Full service id, e.g. notify.mobile_app_iphone"
       selector:
         text:
     quiet_start:
-      name: Quiet hours start (optional)
+      name: Quiet hours start
       default: "22:00:00"
       selector:
         time:
     quiet_end:
-      name: Quiet hours end (optional)
+      name: Quiet hours end
       default: "07:00:00"
       selector:
         time:
 
+variables:
+  due_soon_sensor: !input due_soon_sensor
+  notify_service: !input notify_service
+
 trigger:
   - platform: state
     entity_id: !input due_soon_sensor
+    id: due_soon_changed
 
 condition:
   - condition: template
     value_template: >
-      {% set n = states(trigger.entity_id) | int(0) %}
+      {% set n = states(due_soon_sensor) | int(0) %}
       {% set prev = trigger.from_state.state | int(0) if trigger.from_state else 0 %}
       {{ n > prev and n > 0 }}
   - condition: not
@@ -45,18 +53,20 @@ condition:
 
 action:
   - variables:
-      items: "{{ state_attr(trigger.entity_id, 'assignments') or [] }}"
+      items: "{{ state_attr(due_soon_sensor, 'assignments') or [] }}"
       student: >
-        {{ state_attr(trigger.entity_id, 'student')
-           or (state_attr(trigger.entity_id, 'friendly_name') or '')
-                | replace('PowerSchool ', '')
-                | replace(' Due Soon Assignments', '') }}
-  - service: !input notify_device
+        {{ state_attr(due_soon_sensor, 'student')
+           or (state_attr(due_soon_sensor, 'friendly_name') or 'Student') }}
+      count: "{{ states(due_soon_sensor) | int(0) }}"
+  - service: "{{ notify_service }}"
     data:
-      title: "PowerSchool — {{ student }} due soon"
+      title: "Due soon — {{ student }}"
       message: >
-        {{ states(trigger.entity_id) }} due soon.
+        {{ count }} assignment{{ 's' if count != 1 else '' }} due soon.
         {% for a in items[:5] %}
-        • {{ a.name }}{% if a.course %} ({{ a.course }}){% endif %} — {{ a.due }}
-        {% endfor %}
-mode: single
+        • {{ a.name }}{% if a.course %} ({{ a.course }}){% endif %}{% if a.due %} — {{ a.due }}{% endif %}
+        {% endfor %}{% if items | count > 5 %}
+        …and {{ items | count - 5 }} more
+        {% endif %}
+mode: queued
+max_exceeded: silent

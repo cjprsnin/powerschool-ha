@@ -2,41 +2,53 @@ blueprint:
   name: PowerSchool missing / late work alert
   description: >
     Notify when a student's missing or late assignment count increases.
-    Optional quiet hours skip overnight alerts.
+    Message includes both current totals. Optional quiet hours (default
+    22:00–07:00).
   domain: automation
+  source_url: https://github.com/cjprsnin/powerschool-ha/blob/main/blueprints/automation/powerschool_missing_work.yaml
   input:
     missing_sensor:
       name: Missing assignments sensor
+      description: sensor.*_missing (or Missing Assignments)
       selector:
         entity:
           integration: powerschool
           domain: sensor
     late_sensor:
       name: Late assignments sensor
+      description: sensor.*_late (or Late Assignments)
       selector:
         entity:
           integration: powerschool
           domain: sensor
-    notify_device:
-      name: Notify service (e.g. notify.mobile_app_phone)
+    notify_service:
+      name: Notify service
+      description: "Full service id, e.g. notify.mobile_app_iphone"
       selector:
         text:
     quiet_start:
-      name: Quiet hours start (optional)
+      name: Quiet hours start
       default: "22:00:00"
       selector:
         time:
     quiet_end:
-      name: Quiet hours end (optional)
+      name: Quiet hours end
       default: "07:00:00"
       selector:
         time:
 
+variables:
+  missing_sensor: !input missing_sensor
+  late_sensor: !input late_sensor
+  notify_service: !input notify_service
+
 trigger:
   - platform: state
     entity_id: !input missing_sensor
+    id: missing
   - platform: state
     entity_id: !input late_sensor
+    id: late
 
 condition:
   - condition: template
@@ -52,18 +64,18 @@ condition:
 
 action:
   - variables:
-      kind: >
-        {{ 'missing' if 'missing' in trigger.entity_id else 'late' }}
+      kind: "{{ trigger.id }}"
       student: >
         {{ state_attr(trigger.entity_id, 'student')
-           or (state_attr(trigger.entity_id, 'friendly_name') or '')
-                | replace('PowerSchool ', '')
-                | replace(' Missing Assignments', '')
-                | replace(' Late Assignments', '') }}
-  - service: !input notify_device
+           or (state_attr(trigger.entity_id, 'friendly_name') or 'Student') }}
+      missing_n: "{{ states(missing_sensor) | int(0) }}"
+      late_n: "{{ states(late_sensor) | int(0) }}"
+      prev: "{{ trigger.from_state.state if trigger.from_state else '?' }}"
+  - service: "{{ notify_service }}"
     data:
-      title: "PowerSchool — {{ student }}"
+      title: "{{ student }} — {{ kind }} work"
       message: >
-        {{ student }}: {{ states(trigger.entity_id) }} {{ kind }}
-        (was {{ trigger.from_state.state if trigger.from_state else '?' }}).
-mode: single
+        {{ kind | title }} count is now {{ states(trigger.entity_id) }} (was {{ prev }}).
+        Totals: {{ missing_n }} missing, {{ late_n }} late.
+mode: queued
+max_exceeded: silent
