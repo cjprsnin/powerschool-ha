@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PowerSchool HA — Interactive card demo</title>
-  <meta name="description" content="Interactive preview of PowerSchool Grades Lovelace cards (V4 / V2) with sample data." />
+  <meta name="description" content="Interactive preview of PowerSchool Grades Lovelace cards V1–V4 with sample data." />
   <style>
     :root {
       --bg: #0c0c0e;
@@ -24,7 +24,7 @@
       min-height: 100vh;
     }
     header {
-      max-width: 960px;
+      max-width: 1100px;
       margin: 0 auto;
       padding: 1.5rem 1.25rem 0.5rem;
     }
@@ -37,7 +37,7 @@
     header p { margin: 0; color: var(--muted); font-size: 0.95rem; }
     header a { color: var(--accent); }
     .toolbar {
-      max-width: 960px;
+      max-width: 1100px;
       margin: 0 auto;
       padding: 1rem 1.25rem;
       display: flex;
@@ -45,7 +45,7 @@
       gap: 0.5rem;
       align-items: center;
     }
-    .toolbar label { color: var(--muted); font-size: 0.85rem; margin-right: 0.25rem; }
+    .toolbar label { color: var(--muted); font-size: 0.85rem; margin-right: 0.15rem; }
     button, select {
       background: var(--card);
       color: var(--fg);
@@ -57,22 +57,18 @@
     }
     button.active, button:hover { border-color: var(--accent); color: var(--accent); }
     main {
-      max-width: 960px;
+      max-width: 1100px;
       margin: 0 auto;
       padding: 0 1.25rem 3rem;
       display: grid;
       gap: 1.25rem;
     }
-    @media (min-width: 800px) {
+    @media (min-width: 900px) {
       main.two { grid-template-columns: 1fr 1fr; }
     }
-    .panel {
-      background: transparent;
-      border-radius: 12px;
-      min-height: 120px;
-    }
+    .panel { min-height: 80px; }
     .hint {
-      max-width: 960px;
+      max-width: 1100px;
       margin: 0 auto;
       padding: 0 1.25rem 2rem;
       color: var(--muted);
@@ -90,13 +86,29 @@
       margin-left: 0.4rem;
       vertical-align: middle;
     }
+    html {
+      --primary-text-color: #ecece8;
+      --secondary-text-color: #9a9aa0;
+      --card-background-color: #16161a;
+      --secondary-background-color: #1e1e24;
+      --divider-color: #2a2a30;
+      --primary-color: #c4a574;
+      --ha-card-border-radius: 12px;
+    }
+    ha-card {
+      display: block;
+      background: var(--card-background-color);
+      border-radius: 12px;
+      border: 1px solid var(--divider-color);
+      overflow: hidden;
+    }
   </style>
 </head>
 <body>
   <header>
     <h1>PowerSchool Grades <span class="badge">demo</span></h1>
     <p>
-      Interactive preview of Lovelace cards with sample students.
+      Interactive preview of Lovelace cards V1–V4 with sample students.
       Not connected to a live portal.
       <a href="https://github.com/cjprsnin/powerschool-ha">GitHub</a>
       ·
@@ -108,7 +120,9 @@
     <label for="cardVer">Card</label>
     <select id="cardVer">
       <option value="v4" selected>V4 — Due soon + grades</option>
+      <option value="v3">V3 — Class overview</option>
       <option value="v2">V2 — App tiles</option>
+      <option value="v1">V1 — Expandable list</option>
     </select>
     <button type="button" id="btnBoth" class="active">Both students</button>
     <button type="button" id="btnTrent">Trent only</button>
@@ -120,28 +134,53 @@
     <div class="panel" id="slot-teagan"></div>
   </main>
 
-  <p class="hint">
-    Tip: on V4, tap <strong>Classes</strong>, <strong>Missing/Late</strong>, or <strong>Attendance</strong> in the stats bar,
-    or a subject tile for assignments. Sample data only.
+  <p class="hint" id="hint">
+    Tip: on V4, tap <strong>Classes</strong>, <strong>Missing/Late</strong>, or <strong>Attendance</strong>,
+    or a subject tile. Sample data only.
   </p>
 
   <script src="./mock-data.js"></script>
   <script type="module">
     const CDN = "https://cdn.jsdelivr.net/gh/cjprsnin/powerschool-ha@main/www";
 
-    async function loadCard(ver) {
-      if (ver === "v4") {
-        await import(`${CDN}/powerschool-v4-card.js`);
-        return "powerschool-v4-card";
+    if (!customElements.get("ha-card")) {
+      class HaCard extends HTMLElement {}
+      customElements.define("ha-card", HaCard);
+    }
+    if (!customElements.get("ha-icon")) {
+      class HaIcon extends HTMLElement {
+        static get observedAttributes() { return ["icon"]; }
+        connectedCallback() { this.textContent = "●"; this.style.fontSize = "12px"; }
       }
-      await import(`${CDN}/powerschool-v2-card.js`);
-      return "powerschool-v2-card";
+      customElements.define("ha-icon", HaIcon);
+    }
+
+    const MAP = {
+      v1: { file: "powerschool-card.js", tag: "powerschool-card" },
+      v2: { file: "powerschool-v2-card.js", tag: "powerschool-v2-card" },
+      v3: { file: "powerschool-v3-card.js", tag: "powerschool-v3-card" },
+      v4: { file: "powerschool-v4-card.js", tag: "powerschool-v4-card" },
+    };
+
+    const HINTS = {
+      v4: "Tip: on V4, tap <strong>Classes</strong>, <strong>Missing/Late</strong>, or <strong>Attendance</strong>, or a subject tile.",
+      v3: "Tip: on V3, tap a class tile for assignments.",
+      v2: "Tip: on V2, tap a color tile for the course drill-down.",
+      v1: "Tip: on V1, expand a course row for assignments.",
+    };
+
+    async function loadCard(ver) {
+      const m = MAP[ver];
+      await import(`${CDN}/${m.file}`);
+      return m.tag;
     }
 
     function mount(tag, student, slot) {
       slot.innerHTML = "";
       const el = document.createElement(tag);
-      el.setConfig({ student, show_empty: student === "Teagan" });
+      const cfg = { student };
+      if (student === "Teagan") cfg.show_empty = true;
+      el.setConfig(cfg);
       el.hass = window.PS_DEMO_HASS;
       slot.appendChild(el);
     }
@@ -150,10 +189,13 @@
     const slotT = document.getElementById("slot-trent");
     const slotG = document.getElementById("slot-teagan");
     const sel = document.getElementById("cardVer");
+    const hint = document.getElementById("hint");
     let mode = "both";
 
     async function render() {
-      const tag = await loadCard(sel.value);
+      const ver = sel.value;
+      hint.innerHTML = (HINTS[ver] || "") + " Sample data only.";
+      const tag = await loadCard(ver);
       if (mode === "trent") {
         stage.classList.remove("two");
         slotT.style.display = "";
@@ -180,27 +222,20 @@
     }
 
     document.getElementById("btnBoth").onclick = () => {
-      mode = "both";
-      setActive("btnBoth");
-      render();
+      mode = "both"; setActive("btnBoth"); render();
     };
     document.getElementById("btnTrent").onclick = () => {
-      mode = "trent";
-      setActive("btnTrent");
-      render();
+      mode = "trent"; setActive("btnTrent"); render();
     };
     document.getElementById("btnTeagan").onclick = () => {
-      mode = "teagan";
-      setActive("btnTeagan");
-      render();
+      mode = "teagan"; setActive("btnTeagan"); render();
     };
     sel.onchange = () => render();
 
     render().catch((e) => {
       stage.innerHTML =
-        "<p style='color:#f88'>Failed to load card modules from jsDelivr. Check network / CDN.</p><pre>" +
-        String(e) +
-        "</pre>";
+        "<p style='color:#f88'>Failed to load card modules from jsDelivr.</p><pre>" +
+        String(e) + "</pre>";
     });
   </script>
 </body>
