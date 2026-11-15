@@ -47,8 +47,14 @@ Re-authentication: if the password changes or the district locks the account, Ho
 | Reauth prompt | Update password under the integration’s reconfigure flow |
 | One district fails, other OK | Multi-district isolates errors; fix the failing district credentials |
 | Grades empty for a student | Elementary / standards-only courses may not expose a % |
-| Icon missing in Marketplace | Ensure `custom_components/powerschool/brand/icon.png` is present |
+| Card shows sensor id instead of class name | Update to **1.6.1+** (course attribute + V1/V2 prefer `attributes.course`); hard-refresh card resources |
+| Icon missing in Marketplace | Ensure `brand/icon.png` and `custom_components/powerschool/brand/icon.png` are present |
 
 ## Removal
 
 **Settings → Devices & services → PowerSchool → Delete.** Optionally remove `config/www/powerschool/` photo cache and any Lovelace cards / automations that reference `sensor.powerschool_*`.
+
+## Demo
+
+Interactive card preview (sample data): [cjprsnin.github.io/powerschool-ha/demo/](https://cjprsnin.github.io/powerschool-ha/demo/)  
+Requires GitHub Pages on branch `main`, folder `/docs`.
