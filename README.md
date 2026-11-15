@@ -1,12 +1,21 @@
 # PowerSchool Grades for Home Assistant
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/docs/images/logo.svg" alt="PowerSchool Grades" width="160" height="160">
+  <img src="https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/icon.png" alt="PowerSchool Grades" width="128" height="128">
 </p>
 
-Unofficial Home Assistant integration for the **PowerSchool Parent Portal**.
+<p align="center">
+  <strong>Unofficial</strong> Home Assistant integration for the PowerSchool Parent Portal<br/>
+  Grades · assignments · missing/late · attendance · schedule · bulletin · roster · photos
+</p>
 
-Pulls grades, assignments, missing/late work, attendance, schedule, bulletin, class roster, and optional **student photos** for selected students.
+<p align="center">
+  <a href="https://cjprsnin.github.io/powerschool-ha/demo/"><strong>Interactive card demo</strong></a>
+  ·
+  <a href="docs/CARDS.md">Card docs</a>
+  ·
+  <a href="CHANGELOG.md">Changelog</a>
+</p>
 
 **Version:** 1.5.1
 
@@ -15,12 +24,12 @@ Pulls grades, assignments, missing/late work, attendance, schedule, bulletin, cl
 ## Features
 
 - Config flow setup (portal URL, credentials, students)
-- **Multi-district in one entry** — add another portal from Configure (e.g. middle school + future high school)
+- **Multi-district in one entry** — add another portal from Configure
 - Per-student summary sensors (average, missing, late, due soon, absences, …)
-- Per-course grade sensors with full assignment attributes
+- Per-course grade sensors with assignment attributes
 - Binary sensors: has missing work / has late work
-- Attendance, schedule periods, bulletin, class roster sensors
-- Student profile photos as `entity_picture` (when the portal exposes them)
+- Attendance, schedule, bulletin, class roster
+- Student photos as `entity_picture` when the portal exposes them
 - Service: `powerschool.refresh`
 - Custom Lovelace cards **V1–V4** (V4: due-soon strip, roster/attendance drills)
 
@@ -28,11 +37,11 @@ Pulls grades, assignments, missing/late work, attendance, schedule, bulletin, cl
 
 ### HACS / Marketplace (recommended)
 
-1. Add custom repository `https://github.com/cjprsnin/powerschool-ha` as **Integration** (if not already listed)
-2. Install **PowerSchool Grades** → restart Home Assistant when prompted
+1. Add custom repository `https://github.com/cjprsnin/powerschool-ha` as **Integration** (if needed)
+2. Install **PowerSchool Grades** → restart when prompted
 3. **Settings → Devices & services → Add integration → PowerSchool Grades**
-4. Enter portal URL (e.g. `https://powerschool.yourdistrict.org`), username, password
-5. Optional **district name** (shown in titles when you have more than one)
+4. Enter portal URL, username, password
+5. Optional **district name** when you track more than one
 6. Select students → optionally **Add another district**
 
 ### Manual
@@ -43,33 +52,26 @@ Copy `custom_components/powerschool` into `/config/custom_components/`, restart,
 
 | Field | Description |
 |-------|-------------|
-| URL | PowerSchool parent portal base URL |
+| URL | Parent portal base URL |
 | Username / Password | Guardian login |
-| Name | Optional label (e.g. `D41`, `High School`) |
+| Name | Optional label (e.g. `D41`) |
 | Students | Which children to track |
-| Update interval | 5–1440 minutes (default 30) |
+| Update interval | 5–1440 minutes (default **30**) |
 
-**Options** (integration → Configure):
-
-- Change poll interval
-- **Add another district** (same entry, multiple portals)
+**Options** (integration → Configure): change poll interval · **Add another district**
 
 ## Entities (per student)
-
-Entity IDs may be prefixed by area/device (e.g. `sensor.trent_s_bedroom_…`). Patterns:
 
 | Pattern | Description |
 |---------|-------------|
 | `…_grade_average` | Average of course % grades |
 | `…_missing_assignments` / `…_late_assignments` | Counts |
-| `…_due_soon_assignments` / `…_upcoming_assignments` | Windows + assignment lists in attributes |
+| `…_due_soon_assignments` / `…_upcoming_assignments` | Windows + assignment lists |
 | `…_absences` / `…_tardies` / `…_absent_days` / `…_tardy_days` | Attendance |
 | `…_schedule_periods` / `…_bulletin_items` / `…_class_roster` | Schedule, news, roster |
-| `…_status` | Diagnostic (identity / last scrape) |
-| `…_<course>` | Per-course grade (% or letter) |
-| `binary_sensor.…_has_missing_work` / `…_has_late_work` | Problem flags |
-
-Course unique IDs prefer PowerSchool `section_id` so renames do not orphan entities.
+| `…_status` | Diagnostic |
+| `…_<course>` | Per-course grade |
+| `binary_sensor.…_has_missing_work` / `…_has_late_work` | Flags |
 
 ## Services
 
@@ -78,13 +80,13 @@ action: powerschool.refresh
 data: {}
 ```
 
-Forces an immediate poll of configured PowerSchool entries. No entity target required.
+Forces an immediate poll. No entity target required.
 
 ## Lovelace cards
 
-![School V2 · V4](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/docs/images/dashboard-v4.svg)
+Try the **[interactive demo](https://cjprsnin.github.io/powerschool-ha/demo/)** (sample data, V4 & V2).
 
-See **[docs/CARDS.md](docs/CARDS.md)** for previews and options.
+Full options: **[docs/CARDS.md](docs/CARDS.md)**
 
 | Card | Type | Best for |
 |------|------|----------|
@@ -93,56 +95,73 @@ See **[docs/CARDS.md](docs/CARDS.md)** for previews and options.
 | V3 | `custom:powerschool-v3-card` | Class overview grid |
 | **V4** | `custom:powerschool-v4-card` | Due soon + grades + roster/attendance |
 
-Register as **JavaScript module** resources (Dashboard → Resources), for example:
+Register as **JavaScript module** resources, for example:
 
 ```text
 https://cdn.jsdelivr.net/gh/cjprsnin/powerschool-ha@main/www/powerschool-v4-card.js
 ```
 
-School dashboard example: [`examples/school-v2-dashboard.yaml`](examples/school-v2-dashboard.yaml)
+<details>
+<summary><strong>V4 YAML (recommended)</strong></summary>
 
 ```yaml
 type: custom:powerschool-v4-card
 student: Trent
 ```
 
-## Profile pictures
+```yaml
+type: custom:powerschool-v4-card
+student: Teagan
+show_empty: true
+```
 
-When the portal exposes a photo, it is cached under `/config/www/powerschool/` and set as `entity_picture` on summary sensors. Re-download is skipped when a local file already exists.
+School page: [`examples/school-v2-dashboard.yaml`](examples/school-v2-dashboard.yaml)
+
+</details>
+
+<details>
+<summary><strong>V1 / V2 / V3 YAML</strong></summary>
+
+```yaml
+type: custom:powerschool-card
+student: Trent
+scope: current
+recent: 10
+```
+
+```yaml
+type: custom:powerschool-v2-card
+student: Trent
+```
+
+```yaml
+type: custom:powerschool-v3-card
+student: Teagan
+```
+
+More: [`examples/lovelace-cards-v1-v2-v3.yaml`](examples/lovelace-cards-v1-v2-v3.yaml)
+
+</details>
 
 ## Notifications
 
-Blueprints live in [`blueprints/automation/`](blueprints/automation/). Import from **Settings → Automations & Scenes → Blueprints → Import blueprint** using a raw GitHub URL, or copy the YAML into `/config/blueprints/automation/powerschool/`.
+Blueprints in [`blueprints/automation/`](blueprints/automation/). Import via **Settings → Automations → Blueprints**.
 
-| Blueprint | When it fires | Sensor to pick |
-|-----------|---------------|----------------|
-| [Due tomorrow](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/blueprints/automation/powerschool_due_tomorrow.yaml) | Daily at 17:00 (configurable) if any **ungraded** work is due tomorrow | `…_upcoming_assignments` |
-| [Due soon](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/blueprints/automation/powerschool_due_soon.yaml) | When the due-soon **count increases** | `…_due_soon_assignments` |
-| [Missing / late](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/blueprints/automation/powerschool_missing_work.yaml) | When missing or late **count increases** | `…_missing_assignments` and `…_late_assignments` |
-
-`powerschool_due_today.yaml` is a **legacy filename** for the same due-tomorrow digest — prefer `powerschool_due_tomorrow.yaml` for new automations.
-
-### Setup tips
-
-1. Create **one automation per student** (or one shared notify service).
-2. **Notify service** must be the full service id, e.g. `notify.mobile_app_iphone`.
-3. Due-soon and missing/late support **quiet hours** (default 22:00–07:00).
-4. Assignment lists on due-soon / upcoming sensors are **ungraded only** — graded work does not affect averages or these digests.
-
-Example import URL:
-
-```text
-https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/blueprints/automation/powerschool_due_tomorrow.yaml
-```
+| Blueprint | Fires when | Sensor |
+|-----------|------------|--------|
+| [Due tomorrow](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/blueprints/automation/powerschool_due_tomorrow.yaml) | Daily ~17:00 if ungraded work is due tomorrow | `…_upcoming_assignments` |
+| [Due soon](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/blueprints/automation/powerschool_due_soon.yaml) | Due-soon count increases | `…_due_soon_assignments` |
+| [Missing / late](https://raw.githubusercontent.com/cjprsnin/powerschool-ha/main/blueprints/automation/powerschool_missing_work.yaml) | Missing or late count increases | `…_missing_assignments` / `…_late_assignments` |
 
 ## Notes
 
-- Uses the guardian/parent portal (not a public district API)
-- Poll reasonably; default is **30 minutes**
-- First refresh after restart runs in the background so HA startup is not blocked
-- PowerSchool entities are not required in HomeKit; keep them out of include lists if you hit the device limit
+- Guardian/parent portal scrape (not a public district API)
+- Default poll **30 minutes**
+- First refresh after restart runs in the background
+- Keep PowerSchool entities out of HomeKit include lists if you hit device limits
 
 ## Support
 
 - Issues: [github.com/cjprsnin/powerschool-ha/issues](https://github.com/cjprsnin/powerschool-ha/issues)
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
+- Quality notes: [docs/QUALITY.md](docs/QUALITY.md)
