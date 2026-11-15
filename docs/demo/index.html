@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PowerSchool HA — Interactive card demo</title>
+  <meta name="description" content="Interactive preview of PowerSchool Grades Lovelace cards (V4 / V2) with sample data." />
+  <style>
+    :root {
+      --bg: #0c0c0e;
+      --fg: #ecece8;
+      --muted: #9a9aa0;
+      --card: #16161a;
+      --accent: #c4a574;
+      --steel: #c8ccd4;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.45;
+      min-height: 100vh;
+    }
+    header {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 0.5rem;
+    }
+    header h1 {
+      font-size: 1.35rem;
+      font-weight: 650;
+      margin: 0 0 0.35rem;
+      letter-spacing: -0.02em;
+    }
+    header p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+    header a { color: var(--accent); }
+    .toolbar {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .toolbar label { color: var(--muted); font-size: 0.85rem; margin-right: 0.25rem; }
+    button, select {
+      background: var(--card);
+      color: var(--fg);
+      border: 1px solid #2a2a30;
+      border-radius: 8px;
+      padding: 0.45rem 0.75rem;
+      font: inherit;
+      cursor: pointer;
+    }
+    button.active, button:hover { border-color: var(--accent); color: var(--accent); }
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 1.25rem 3rem;
+      display: grid;
+      gap: 1.25rem;
+    }
+    @media (min-width: 800px) {
+      main.two { grid-template-columns: 1fr 1fr; }
+    }
+    .panel {
+      background: transparent;
+      border-radius: 12px;
+      min-height: 120px;
+    }
+    .hint {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 1.25rem 2rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--steel);
+      border: 1px solid #2a2a30;
+      border-radius: 999px;
+      padding: 0.15rem 0.5rem;
+      margin-left: 0.4rem;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PowerSchool Grades <span class="badge">demo</span></h1>
+    <p>
+      Interactive preview of Lovelace cards with sample students.
+      Not connected to a live portal.
+      <a href="https://github.com/cjprsnin/powerschool-ha">GitHub</a>
+      ·
+      <a href="../CARDS.md">Card docs</a>
+    </p>
+  </header>
+
+  <div class="toolbar">
+    <label for="cardVer">Card</label>
+    <select id="cardVer">
+      <option value="v4" selected>V4 — Due soon + grades</option>
+      <option value="v2">V2 — App tiles</option>
+    </select>
+    <button type="button" id="btnBoth" class="active">Both students</button>
+    <button type="button" id="btnTrent">Trent only</button>
+    <button type="button" id="btnTeagan">Teagan only</button>
+  </div>
+
+  <main id="stage" class="two">
+    <div class="panel" id="slot-trent"></div>
+    <div class="panel" id="slot-teagan"></div>
+  </main>
+
+  <p class="hint">
+    Tip: on V4, tap <strong>Classes</strong>, <strong>Missing/Late</strong>, or <strong>Attendance</strong> in the stats bar,
+    or a subject tile for assignments. Sample data only.
+  </p>
+
+  <script src="./mock-data.js"></script>
+  <script type="module">
+    const CDN = "https://cdn.jsdelivr.net/gh/cjprsnin/powerschool-ha@main/www";
+
+    async function loadCard(ver) {
+      if (ver === "v4") {
+        await import(`${CDN}/powerschool-v4-card.js`);
+        return "powerschool-v4-card";
+      }
+      await import(`${CDN}/powerschool-v2-card.js`);
+      return "powerschool-v2-card";
+    }
+
+    function mount(tag, student, slot) {
+      slot.innerHTML = "";
+      const el = document.createElement(tag);
+      el.setConfig({ student, show_empty: student === "Teagan" });
+      el.hass = window.PS_DEMO_HASS;
+      slot.appendChild(el);
+    }
+
+    const stage = document.getElementById("stage");
+    const slotT = document.getElementById("slot-trent");
+    const slotG = document.getElementById("slot-teagan");
+    const sel = document.getElementById("cardVer");
+    let mode = "both";
+
+    async function render() {
+      const tag = await loadCard(sel.value);
+      if (mode === "trent") {
+        stage.classList.remove("two");
+        slotT.style.display = "";
+        slotG.style.display = "none";
+        mount(tag, "Trent", slotT);
+      } else if (mode === "teagan") {
+        stage.classList.remove("two");
+        slotT.style.display = "none";
+        slotG.style.display = "";
+        mount(tag, "Teagan", slotG);
+      } else {
+        stage.classList.add("two");
+        slotT.style.display = "";
+        slotG.style.display = "";
+        mount(tag, "Trent", slotT);
+        mount(tag, "Teagan", slotG);
+      }
+    }
+
+    function setActive(id) {
+      ["btnBoth", "btnTrent", "btnTeagan"].forEach((x) => {
+        document.getElementById(x).classList.toggle("active", x === id);
+      });
+    }
+
+    document.getElementById("btnBoth").onclick = () => {
+      mode = "both";
+      setActive("btnBoth");
+      render();
+    };
+    document.getElementById("btnTrent").onclick = () => {
+      mode = "trent";
+      setActive("btnTrent");
+      render();
+    };
+    document.getElementById("btnTeagan").onclick = () => {
+      mode = "teagan";
+      setActive("btnTeagan");
+      render();
+    };
+    sel.onchange = () => render();
+
+    render().catch((e) => {
+      stage.innerHTML =
+        "<p style='color:#f88'>Failed to load card modules from jsDelivr. Check network / CDN.</p><pre>" +
+        String(e) +
+        "</pre>";
+    });
+  </script>
+</body>
+</html>
