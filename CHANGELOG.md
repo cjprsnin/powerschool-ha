@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.6.1 — 2026-11-15
+
+### Fixed
+- Course sensors now expose a **`course`** attribute (proper class titles in V1/V2 cards and the live demo)
+- V1 and V2 Lovelace cards prefer `attributes.course` over entity/friendly names
+- Restored full `powerschool-card.js` after a truncated publish
+
+### Added
+- Interactive GitHub Pages demo for **V1–V4** (`docs/demo/`)
+- README collapsible YAML examples and demo link
+
+### Changed
+- Brand assets: notebook icon on pure black (repo `icon.png` / `brand/`)
+
 ## 1.5.1 — 2026-11-13
 
 ### Added
@@ -38,9 +52,3 @@
 ### Changed
 - Background first refresh so integration setup does not block HA startup
 - README and card docs updated for V4 and multi-district
-
-## 1.4.0
-
-- Summary sensors, course sensors, binary sensors
-- V1 / V2 / V3 Lovelace cards
-- Student photos, refresh service, notification blueprints
