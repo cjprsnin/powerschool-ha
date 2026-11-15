@@ -35,8 +35,6 @@
         { name: "Lab write-up", due: "2026-11-16", percent: null },
         { name: "Chapter 4 quiz", due: "2026-11-10", percent: 85 },
       ],
-      missing: 0,
-      late: 0,
     },
     {
       id: "sensor.powerschool_trent_english_language_arts_7",
@@ -58,11 +56,10 @@
       room: "D2",
       section_id: "51669",
       assignments: [
-        { name: "Problem set 12", due: "2026-11-17", percent: null, late: false },
+        { name: "Problem set 12", due: "2026-11-17", percent: null },
         { name: "Quiz 5", due: "2026-11-08", percent: 78 },
       ],
       missing: 1,
-      late: 0,
     },
     {
       id: "sensor.powerschool_trent_global_studies_7",
@@ -86,7 +83,6 @@
       room: "101",
       section_id: "60001",
       assignments: [{ name: "Book log", due: "2026-11-18", percent: null }],
-      grade_letter: null,
     },
     {
       id: "sensor.powerschool_teagan_math",
@@ -100,9 +96,12 @@
   ];
 
   function courseState(c, student) {
+    // V2 derives tile title from friendly_name (strips "PowerSchool {student} ").
+    // V3/V4 prefer attributes.course. Set both.
     const a = {
       student,
       course: c.name,
+      friendly_name: "PowerSchool " + student + " " + c.name,
       teacher: c.teacher || "",
       room: c.room || "",
       section_id: c.section_id,
@@ -111,75 +110,108 @@
       late: c.late || 0,
       absences: c.absences || 0,
       tardies: c.tardies || 0,
-      unit_of_measurement: c.pct != null ? "%" : undefined,
     };
-    if (c.pct != null) a.grade_percent = c.pct;
+    if (c.pct != null) {
+      a.grade_percent = c.pct;
+      a.unit_of_measurement = "%";
+    }
     if (c.grade_letter) a.grade_letter = c.grade_letter;
-    const state = c.pct != null ? c.pct : "unknown";
-    return S(c.id, state, a);
+    return S(c.id, c.pct != null ? c.pct : "unknown", a);
   }
 
   const states = {};
 
-  [
-    S("sensor.powerschool_trent_grade_average", 90.4, {
-      student: "Trent",
-      unit_of_measurement: "%",
-    }),
-    S("sensor.powerschool_trent_missing_assignments", 1, { student: "Trent" }),
-    S("sensor.powerschool_trent_late_assignments", 0, { student: "Trent" }),
-    S("sensor.powerschool_trent_due_soon_assignments", 4, {
-      student: "Trent",
-      window_days: 7,
-      assignments: [
-        { name: "Lab write-up", course: "Science 7", due: "2026-11-16", percent: null },
-        { name: "Concert reflection", course: "Symphonic Band", due: "2026-11-17", percent: null },
-        { name: "Problem set 12", course: "Pre-Algebra", due: "2026-11-17", percent: null },
-        { name: "Essay draft", course: "English Language Arts 7", due: "2026-11-18", percent: null },
-      ],
-    }),
-    S("sensor.powerschool_trent_absences", 2, { student: "Trent" }),
-    S("sensor.powerschool_trent_tardies", 1, { student: "Trent" }),
-    S("sensor.powerschool_trent_absent_days", 2, { student: "Trent" }),
-    S("sensor.powerschool_trent_tardy_days", 1, { student: "Trent" }),
-    S("sensor.powerschool_trent_class_roster", 5, {
-      student: "Trent",
-      class_roster: trentCourses.map((c) => ({
-        course: c.name,
-        teacher: c.teacher,
-        room: c.room,
-      })),
-    }),
-  ].forEach((e) => (states[e.entity_id] = e));
+  function addSummary(student, avg, missing, late, dueCount, dueList, abs, tardy, roster) {
+    const slug = student.toLowerCase();
+    const base = "sensor.powerschool_" + slug + "_";
+    [
+      S(base + "grade_average", avg, {
+        student,
+        friendly_name: "PowerSchool " + student + " Grade Average",
+        unit_of_measurement: avg === "unknown" ? undefined : "%",
+      }),
+      S(base + "missing_assignments", missing, {
+        student,
+        friendly_name: "PowerSchool " + student + " Missing Assignments",
+      }),
+      S(base + "late_assignments", late, {
+        student,
+        friendly_name: "PowerSchool " + student + " Late Assignments",
+      }),
+      S(base + "due_soon_assignments", dueCount, {
+        student,
+        friendly_name: "PowerSchool " + student + " Due Soon Assignments",
+        window_days: 7,
+        assignments: dueList,
+      }),
+      S(base + "upcoming_assignments", dueCount, {
+        student,
+        friendly_name: "PowerSchool " + student + " Upcoming Assignments",
+        window_days: 14,
+        assignments: dueList,
+      }),
+      S(base + "absences", abs, {
+        student,
+        friendly_name: "PowerSchool " + student + " Absences",
+      }),
+      S(base + "tardies", tardy, {
+        student,
+        friendly_name: "PowerSchool " + student + " Tardies",
+      }),
+      S(base + "absent_days", abs, {
+        student,
+        friendly_name: "PowerSchool " + student + " Absent Days",
+      }),
+      S(base + "tardy_days", tardy, {
+        student,
+        friendly_name: "PowerSchool " + student + " Tardy Days",
+      }),
+      S(base + "class_roster", roster.length, {
+        student,
+        friendly_name: "PowerSchool " + student + " Class Roster",
+        class_roster: roster.map((c) => ({
+          course: c.name,
+          teacher: c.teacher,
+          room: c.room,
+        })),
+      }),
+    ].forEach((e) => {
+      states[e.entity_id] = e;
+    });
+  }
 
+  addSummary(
+    "Trent",
+    90.4,
+    1,
+    0,
+    4,
+    [
+      { name: "Lab write-up", course: "Science 7", due: "2026-11-16", percent: null },
+      { name: "Concert reflection", course: "Symphonic Band", due: "2026-11-17", percent: null },
+      { name: "Problem set 12", course: "Pre-Algebra", due: "2026-11-17", percent: null },
+      { name: "Essay draft", course: "English Language Arts 7", due: "2026-11-18", percent: null },
+    ],
+    2,
+    1,
+    trentCourses
+  );
   trentCourses.forEach((c) => {
     const e = courseState(c, "Trent");
     states[e.entity_id] = e;
   });
 
-  [
-    S("sensor.powerschool_teagan_grade_average", "unknown", { student: "Teagan" }),
-    S("sensor.powerschool_teagan_missing_assignments", 0, { student: "Teagan" }),
-    S("sensor.powerschool_teagan_late_assignments", 0, { student: "Teagan" }),
-    S("sensor.powerschool_teagan_due_soon_assignments", 1, {
-      student: "Teagan",
-      window_days: 7,
-      assignments: [
-        { name: "Book log", course: "Reading", due: "2026-11-18", percent: null },
-      ],
-    }),
-    S("sensor.powerschool_teagan_absences", 0, { student: "Teagan" }),
-    S("sensor.powerschool_teagan_tardies", 0, { student: "Teagan" }),
-    S("sensor.powerschool_teagan_class_roster", 2, {
-      student: "Teagan",
-      class_roster: teaganCourses.map((c) => ({
-        course: c.name,
-        teacher: c.teacher,
-        room: c.room,
-      })),
-    }),
-  ].forEach((e) => (states[e.entity_id] = e));
-
+  addSummary(
+    "Teagan",
+    "unknown",
+    0,
+    0,
+    1,
+    [{ name: "Book log", course: "Reading", due: "2026-11-18", percent: null }],
+    0,
+    0,
+    teaganCourses
+  );
   teaganCourses.forEach((c) => {
     const e = courseState(c, "Teagan");
     states[e.entity_id] = e;
